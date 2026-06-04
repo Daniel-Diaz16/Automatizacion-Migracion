@@ -6,25 +6,252 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>600</width>
-    <height>450</height>
+    <width>850</width>
+    <height>650</height>
    </rect>
   </property>
   <property name="windowTitle">
-   <string>Panel de Automatización de Migraciones</string>
+   <string>Sistema de Automatización de Migraciones VTR</string>
+  </property>
+  <property name="styleSheet">
+   <string notr="true">
+    /* Fondo principal - gris azulado suave */
+    QMainWindow {
+        background-color: #f0f2f5;
+    }
+    
+    /* Título principal */
+    QLabel#lbl_title {
+        color: #1a365d;
+        font-size: 18px;
+        font-weight: bold;
+        padding: 10px;
+        font-family: 'Segoe UI', Arial, sans-serif;
+    }
+    
+    /* Subtítulos y etiquetas */
+    QLabel#lbl_zona, QLabel#lbl_estado {
+        color: #4a5568;
+        font-size: 11px;
+        font-family: 'Segoe UI', Arial, sans-serif;
+    }
+    
+    /* Estilo base para botones */
+    QPushButton {
+        background-color: #ffffff;
+        border: 1px solid #cbd5e0;
+        border-radius: 6px;
+        color: #2d3748;
+        font-size: 12px;
+        font-weight: 500;
+        padding: 8px 15px;
+        min-height: 35px;
+        font-family: 'Segoe UI', Arial, sans-serif;
+    }
+    
+    QPushButton:hover {
+        background-color: #edf2f7;
+        border-color: #a0aec0;
+    }
+    
+    QPushButton:pressed {
+        background-color: #e2e8f0;
+    }
+    
+    /* Botón ACTIVAR PROGRAMADOR - Verde azulado */
+    QPushButton#btn_iniciar_reloj {
+        background-color: #2c7a7b;
+        border-color: #2c7a7b;
+        color: #ffffff;
+    }
+    
+    QPushButton#btn_iniciar_reloj:hover {
+        background-color: #285e61;
+        border-color: #285e61;
+    }
+    
+    /* Botón DETENER PROGRAMADOR - Rojo suave */
+    QPushButton#btn_detener_programador {
+        background-color: #e53e3e;
+        border-color: #e53e3e;
+        color: #ffffff;
+    }
+    
+    QPushButton#btn_detener_programador:hover {
+        background-color: #c53030;
+        border-color: #c53030;
+    }
+    
+    /* Botón EJECUTAR MANUAL - Azul corporativo */
+    QPushButton#btn_ejecutar_manual {
+        background-color: #3182ce;
+        border-color: #3182ce;
+        color: #ffffff;
+    }
+    
+    QPushButton#btn_ejecutar_manual:hover {
+        background-color: #2c5282;
+        border-color: #2c5282;
+    }
+    
+    /* Botón LIMPIAR CONSOLA - Gris */
+    QPushButton#btn_limpiar_consola {
+        background-color: #718096;
+        border-color: #718096;
+        color: #ffffff;
+    }
+    
+    QPushButton#btn_limpiar_consola:hover {
+        background-color: #4a5568;
+        border-color: #4a5568;
+    }
+    
+    /* Group boxes */
+    QGroupBox {
+        color: #2d3748;
+        font-weight: 600;
+        border: 1px solid #e2e8f0;
+        border-radius: 8px;
+        margin-top: 10px;
+        padding-top: 10px;
+        background-color: #ffffff;
+    }
+    
+    QGroupBox::title {
+        subcontrol-origin: margin;
+        left: 10px;
+        padding: 0 8px 0 8px;
+        color: #1a365d;
+    }
+    
+    /* Consola de texto */
+    QTextEdit {
+        background-color: #1a202c;
+        color: #a0f0e8;
+        border: 1px solid #2d3748;
+        border-radius: 6px;
+        font-family: 'Consolas', 'Monaco', monospace;
+        font-size: 10px;
+        selection-background-color: #3182ce;
+    }
+    
+    /* Tablas */
+    QTableWidget {
+        background-color: #ffffff;
+        color: #2d3748;
+        border: 1px solid #e2e8f0;
+        border-radius: 6px;
+        gridline-color: #edf2f7;
+        font-family: 'Segoe UI', Arial, sans-serif;
+        font-size: 11px;
+    }
+    
+    QTableWidget::item:selected {
+        background-color: #bee3f8;
+        color: #1a365d;
+    }
+    
+    QHeaderView::section {
+        background-color: #f7fafc;
+        color: #2d3748;
+        font-weight: 600;
+        padding: 8px;
+        border: none;
+        border-bottom: 2px solid #e2e8f0;
+        font-family: 'Segoe UI', Arial, sans-serif;
+        font-size: 11px;
+    }
+    
+    /* Barra de progreso */
+    QProgressBar {
+        border: 1px solid #e2e8f0;
+        border-radius: 4px;
+        text-align: center;
+        color: #2d3748;
+        background-color: #edf2f7;
+        height: 6px;
+    }
+    
+    QProgressBar::chunk {
+        background-color: #3182ce;
+        border-radius: 3px;
+    }
+    
+    /* Pestañas (Tabs) */
+    QTabWidget::pane {
+        border: 1px solid #e2e8f0;
+        border-radius: 8px;
+        background-color: #ffffff;
+        top: -1px;
+    }
+    
+    QTabBar::tab {
+        background-color: #edf2f7;
+        color: #4a5568;
+        padding: 10px 20px;
+        margin-right: 4px;
+        border-top-left-radius: 6px;
+        border-top-right-radius: 6px;
+        font-family: 'Segoe UI', Arial, sans-serif;
+        font-size: 11px;
+        font-weight: 500;
+    }
+    
+    QTabBar::tab:selected {
+        background-color: #ffffff;
+        color: #3182ce;
+        border-bottom: 2px solid #3182ce;
+    }
+    
+    QTabBar::tab:hover:!selected {
+        background-color: #e2e8f0;
+        color: #2d3748;
+    }
+    
+    /* Scrollbars */
+    QScrollBar:vertical {
+        background-color: #f7fafc;
+        width: 10px;
+        border-radius: 5px;
+    }
+    
+    QScrollBar::handle:vertical {
+        background-color: #cbd5e0;
+        border-radius: 5px;
+        min-height: 20px;
+    }
+    
+    QScrollBar::handle:vertical:hover {
+        background-color: #a0aec0;
+    }
+    
+    QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {
+        height: 0px;
+    }
+    
+    QScrollBar:horizontal {
+        background-color: #f7fafc;
+        height: 10px;
+        border-radius: 5px;
+    }
+    
+    QScrollBar::handle:horizontal {
+        background-color: #cbd5e0;
+        border-radius: 5px;
+        min-width: 20px;
+    }
+    
+    QScrollBar::handle:horizontal:hover {
+        background-color: #a0aec0;
+    }
+   </string>
   </property>
   <widget class="QWidget" name="centralwidget">
    <layout class="QVBoxLayout" name="verticalLayout">
     <item>
      <widget class="QLabel" name="lbl_title">
-      <property name="font">
-       <font>
-        <pointsize>14</pointsize>
-        <bold>true</bold>
-       </font>
-      </property>
       <property name="text">
-       <string>Control de Migración y Gestión</string>
+       <string>Control de Migración y Gestión VTR</string>
       </property>
       <property name="alignment">
        <set>Qt::AlignCenter</set>
@@ -34,7 +261,7 @@
     <item>
      <widget class="QLabel" name="lbl_zona">
       <property name="text">
-       <string>Aviso: Las migraciones y cortes del día operan bajo el horario chileno.</string>
+       <string>Zona horaria: Colombia (America/Bogota) | Las migraciones operan bajo este horario</string>
       </property>
       <property name="alignment">
        <set>Qt::AlignCenter</set>
@@ -42,27 +269,162 @@
      </widget>
     </item>
     <item>
-     <layout class="QHBoxLayout" name="horizontalLayout">
-      <item>
-       <widget class="QPushButton" name="btn_iniciar_reloj">
-        <property name="text">
-         <string>Activar Programador Automático</string>
-        </property>
-       </widget>
-      </item>
-      <item>
-       <widget class="QPushButton" name="btn_ejecutar_manual">
-        <property name="text">
-         <string>Ejecutar Cruce Manualmente</string>
-        </property>
-       </widget>
-      </item>
-     </layout>
+     <widget class="QFrame" name="frame_botones">
+      <property name="frameShape">
+       <enum>QFrame::NoFrame</enum>
+      </property>
+      <property name="frameShadow">
+       <enum>QFrame::Plain</enum>
+      </property>
+      <layout class="QGridLayout" name="gridLayout">
+       <item row="0" column="0">
+        <widget class="QPushButton" name="btn_iniciar_reloj">
+         <property name="minimumSize">
+          <size>
+           <width>150</width>
+           <height>40</height>
+          </size>
+         </property>
+         <property name="text">
+          <string>Activar Programador</string>
+         </property>
+         <property name="toolTip">
+          <string>Inicia el programador automático que ejecuta las tareas según horarios configurados (Lun-Sab 08:10 a 18:10)</string>
+         </property>
+        </widget>
+       </item>
+       <item row="0" column="1">
+        <widget class="QPushButton" name="btn_detener_programador">
+         <property name="minimumSize">
+          <size>
+           <width>150</width>
+           <height>40</height>
+          </size>
+         </property>
+         <property name="enabled">
+          <bool>false</bool>
+         </property>
+         <property name="text">
+          <string>Detener Programador</string>
+         </property>
+         <property name="toolTip">
+          <string>Detiene el programador automático. Las tareas ya no se ejecutarán automáticamente</string>
+         </property>
+        </widget>
+       </item>
+       <item row="0" column="2">
+        <widget class="QPushButton" name="btn_ejecutar_manual">
+         <property name="minimumSize">
+          <size>
+           <width>150</width>
+           <height>40</height>
+          </size>
+         </property>
+         <property name="text">
+          <string>Ejecutar Cruce Manual</string>
+         </property>
+         <property name="toolTip">
+          <string>Ejecuta manualmente el proceso de cruce de datos y engaged (útil para pruebas o ejecuciones fuera de horario)</string>
+         </property>
+        </widget>
+       </item>
+       <item row="0" column="3">
+        <widget class="QPushButton" name="btn_limpiar_consola">
+         <property name="minimumSize">
+          <size>
+           <width>130</width>
+           <height>40</height>
+          </size>
+         </property>
+         <property name="text">
+          <string>Limpiar Consola</string>
+         </property>
+         <property name="toolTip">
+          <string>Limpia todo el texto de la consola de salida</string>
+         </property>
+        </widget>
+       </item>
+       <item row="1" column="0" colspan="4">
+        <widget class="QProgressBar" name="progress_bar">
+         <property name="value">
+          <number>0</number>
+         </property>
+         <property name="textVisible">
+          <bool>false</bool>
+         </property>
+        </widget>
+       </item>
+      </layout>
+     </widget>
     </item>
     <item>
-     <widget class="QTextEdit" name="txt_consola">
-      <property name="readOnly">
-       <bool>true</bool>
+     <widget class="QTabWidget" name="tab_widget">
+      <property name="currentIndex">
+       <number>0</number>
+      </property>
+      <widget class="QWidget" name="tab_consola">
+       <attribute name="title">
+        <string>Consola de Salida</string>
+       </attribute>
+       <layout class="QVBoxLayout" name="verticalLayout_2">
+        <item>
+         <widget class="QTextEdit" name="txt_consola">
+          <property name="readOnly">
+           <bool>true</bool>
+          </property>
+         </widget>
+        </item>
+       </layout>
+      </widget>
+      <widget class="QWidget" name="tab_estado">
+       <attribute name="title">
+        <string>Estado de Procesos</string>
+       </attribute>
+       <layout class="QVBoxLayout" name="verticalLayout_3">
+        <item>
+         <widget class="QTableWidget" name="tabla_estado">
+          <property name="alternatingRowColors">
+           <bool>true</bool>
+          </property>
+          <property name="selectionBehavior">
+           <enum>QAbstractItemView::SelectRows</enum>
+          </property>
+          <attribute name="horizontalHeaderStretchLastSection">
+           <bool>true</bool>
+          </attribute>
+         </widget>
+        </item>
+       </layout>
+      </widget>
+      <widget class="QWidget" name="tab_horarios">
+       <attribute name="title">
+        <string>Horarios Configurados</string>
+       </attribute>
+       <layout class="QVBoxLayout" name="verticalLayout_4">
+        <item>
+         <widget class="QTableWidget" name="tabla_horarios">
+          <property name="alternatingRowColors">
+           <bool>true</bool>
+          </property>
+          <property name="selectionBehavior">
+           <enum>QAbstractItemView::SelectRows</enum>
+          </property>
+          <attribute name="horizontalHeaderStretchLastSection">
+           <bool>true</bool>
+          </attribute>
+         </widget>
+        </item>
+       </layout>
+      </widget>
+     </widget>
+    </item>
+    <item>
+     <widget class="QLabel" name="lbl_estado">
+      <property name="text">
+       <string>Estado: Sistema listo | Programador: INACTIVO</string>
+      </property>
+      <property name="alignment">
+       <set>Qt::AlignCenter</set>
       </property>
      </widget>
     </item>
