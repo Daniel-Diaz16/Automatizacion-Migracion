@@ -13,14 +13,40 @@ import requests
 warnings.filterwarnings('ignore', category=UserWarning, module='openpyxl')
 
 # Configuración del sistema de registros (Logging)
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - [%(levelname)s] - %(message)s',
-    handlers=[
-        logging.StreamHandler(sys.stdout),
-        logging.FileHandler('automatizacion_engaged.log', encoding='utf-8')
-    ]
-)
+# La ruta del log se configura dinámicamente en procesar_automatizacion()
+# para usar %APPDATA%/RPA_Migracion/logs/
+_log_configurado = False
+
+
+def _configurar_logging():
+    """Configura logging con ruta en %APPDATA%/RPA_Migracion/logs/"""
+    global _log_configurado
+    if _log_configurado:
+        return
+    try:
+        from horarios import obtener_ruta_log
+        ruta_log = obtener_ruta_log('engaged')
+    except Exception:
+        ruta_log = 'automatizacion_engaged.log'
+
+    logger = logging.getLogger()
+    logger.setLevel(logging.INFO)
+    formatter = logging.Formatter('%(asctime)s - [%(levelname)s] - %(message)s')
+
+    # Handler para consola
+    stream_handler = logging.StreamHandler(sys.stdout)
+    stream_handler.setFormatter(formatter)
+    logger.addHandler(stream_handler)
+
+    # Handler para archivo en APPDATA
+    try:
+        file_handler = logging.FileHandler(ruta_log, encoding='utf-8')
+        file_handler.setFormatter(formatter)
+        logger.addHandler(file_handler)
+    except Exception as e:
+        print(f"No se pudo crear archivo de log: {e}")
+
+    _log_configurado = True
 
 SPREADSHEET_ID = "1R2BJO1lL1e3CZ5s2_5QT-U8vpeZBRQmRwkJUGu74HEQ"
 GID = "1826436126"
@@ -83,7 +109,7 @@ def cargar_fuentes_externas():
                         "Maria Paula Gaitan Gaitan": "Maria Paula Gaitan Viajan",
                         "Angela Kargy Quintero Ollares": "Angela Kargy Quintero Ollarves",
                         "Estefany Ali Ali": "Estefany Ali",
-                        "Leonardo Hernandez  Aguilar": "Leonardo Hernandez Aguilar", # Ojo: tenía un doble espacio
+                        "Leonardo Hernandez  Aguilar": "Leonardo Hernandez Aguilar",
                         "Jeison Andres Morales Piratoba": "Andres Jeison Morales Piratoba",
                         "Jeimmy Paola Rojas Zarate": "Jeimmy Paola Rojas Zarate",
                         "Jorge Camilo Casallas Casallas": "Jorge Camilo Casallas",
@@ -118,7 +144,7 @@ def cargar_fuentes_externas():
                 logging.error(f"Error cargando Malla Turnos: {e}")
 
         return df_dotacion, df_llamadas, df_cuartiles, df_malla_turnos
-    except Exception as e:
+    except Exception:
         return pd.DataFrame(), pd.DataFrame(), pd.DataFrame(), pd.DataFrame()
 
 
@@ -166,15 +192,13 @@ def aplicar_transformaciones_y_cruces(df_origen, df_dotacion, df_llamadas, df_cu
     df.columns = df.columns.str.strip()
 
     if 'TIPO CAMPAÑA' in df.columns:
-        # 1. Limpiamos la columna: a texto, sin espacios en los bordes y todo en mayúscula
         df['TIPO CAMPAÑA'] = df['TIPO CAMPAÑA'].astype(str).str.strip().str.upper()
         
-        # 2. Aplicamos el filtro
         campañas_a_excluir = ["PILOTO CLOUD", "MIGRACION NORMAL CLOUD", "HOME PASS"]
         df = df[~df['TIPO CAMPAÑA'].isin(campañas_a_excluir)]
         logging.info("Filtro aplicado de forma segura: Se excluyeron las campañas PILOTO CLOUD y MIGRACION NORMAL CLOUD.")
     else:
-        logging.warning("⚠️ No se encontró la columna 'TIPO DE CAMPAÑA' en el formulario original.")
+        logging.warning("No se encontró la columna 'TIPO DE CAMPAÑA' en el formulario original.")
 
     if 'Marca temporal' in df.columns:
         dt_temporal = pd.to_datetime(df['Marca temporal'], errors='coerce')
@@ -217,14 +241,14 @@ def aplicar_transformaciones_y_cruces(df_origen, df_dotacion, df_llamadas, df_cu
     if 'DNI' in df.columns and not df_cuartiles.empty:
         df = pd.merge(df, df_cuartiles, how='left', on='DNI')
     if df_malla_turnos.empty:
-        logging.warning("⚠️ No se cruzaron los Turnos: El archivo 'Malla de Turnos' está vacío o no se cargó.")
+        logging.warning("No se cruzaron los Turnos: El archivo 'Malla de Turnos' está vacío o no se cargó.")
     elif 'DNI' not in df.columns:
-        logging.warning("⚠️ No se cruzaron los Turnos: El archivo principal no tiene la columna 'DNI' (Revisa el archivo de Dotación).")
+        logging.warning("No se cruzaron los Turnos: El archivo principal no tiene la columna 'DNI' (Revisa el archivo de Dotación).")
     elif 'Turno' not in df_malla_turnos.columns:
-        logging.warning("⚠️ No se cruzaron los Turnos: La malla cargó, pero no existe la columna llamada exactamente 'Turno'.")
+        logging.warning("No se cruzaron los Turnos: La malla cargó, pero no existe la columna llamada exactamente 'Turno'.")
     else:
         df = pd.merge(df, df_malla_turnos, how='left', on='DNI')
-        logging.info("✅ Cruce de Malla de Turnos realizado con éxito.")
+        logging.info("Cruce de Malla de Turnos realizado con éxito.")
 
     columnas_a_eliminar = [
         'FECHA DE LA BASE', 'FECHA', 'Unnamed: 18', 'Genesys Engaged', 
@@ -255,7 +279,6 @@ def obtener_conteo_rsl():
         
     for archivo in archivos:
         try:
-            # Leemos el archivo usando Pandas para contar las filas reales de datos
             df_temp = pd.read_csv(archivo, sep='|', encoding='latin-1', dtype=str, on_bad_lines='skip')
             total_registros += len(df_temp)
             logging.info(f"Conteo: {os.path.basename(archivo)} tiene {len(df_temp)} registros.")
@@ -266,6 +289,8 @@ def obtener_conteo_rsl():
 
 
 def procesar_automatizacion():
+    """Funcion principal que ejecuta todo el proceso de Genesys Engaged"""
+    _configurar_logging()
     export_url = f"https://docs.google.com/spreadsheets/d/{SPREADSHEET_ID}/export?format=xlsx&gid={GID}"
     try:
         response = requests.get(export_url, timeout=30)
@@ -284,17 +309,12 @@ def procesar_automatizacion():
             if not os.path.exists(carpeta_destino):
                 os.makedirs(carpeta_destino)
 
-            # --- ESCRIBIR MÚLTIPLES HOJAS EN EL EXCEL ---
             with pd.ExcelWriter(OUTPUT_FILENAME, engine='openpyxl') as writer:
-                # 1. Hoja principal
                 df_final.to_excel(writer, sheet_name='Formulario Engaged', index=False)
                 
-                # 2. Hoja de Campaign
                 if not df_campaign.empty:
                     df_campaign.to_excel(writer, sheet_name='Campaign Activity', index=False)
                     
-                # 3. Hoja nueva de Conteo .RSL
-                # Usamos un nombre de 27 caracteres para evitar el límite de Excel (máximo 31)
                 df_conteo.to_excel(writer, sheet_name='Conteo Engaged', index=False)
                     
             logging.info(f"¡Reporte guardado exitosamente en: {OUTPUT_FILENAME} con sus hojas correspondientes!")
@@ -304,5 +324,11 @@ def procesar_automatizacion():
     except Exception as e:
         logging.error(f"Error crítico: {str(e)}")
 
-if __name__ == "__main__":
+
+def main():
+    """Punto de entrada principal"""
     procesar_automatizacion()
+
+
+if __name__ == "__main__":
+    main()

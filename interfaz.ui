@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>850</width>
-    <height>650</height>
+    <height>700</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -104,6 +104,51 @@
     QPushButton#btn_limpiar_consola:hover {
         background-color: #4a5568;
         border-color: #4a5568;
+    }
+    
+    /* Botones de gestión de horarios */
+    QPushButton#btn_agregar_horario {
+        background-color: #38a169;
+        border-color: #38a169;
+        color: #ffffff;
+    }
+    
+    QPushButton#btn_agregar_horario:hover {
+        background-color: #2f855a;
+        border-color: #2f855a;
+    }
+    
+    QPushButton#btn_modificar_horario {
+        background-color: #d69e2e;
+        border-color: #d69e2e;
+        color: #ffffff;
+    }
+    
+    QPushButton#btn_modificar_horario:hover {
+        background-color: #b7791f;
+        border-color: #b7791f;
+    }
+    
+    QPushButton#btn_eliminar_horario {
+        background-color: #e53e3e;
+        border-color: #e53e3e;
+        color: #ffffff;
+    }
+    
+    QPushButton#btn_eliminar_horario:hover {
+        background-color: #c53030;
+        border-color: #c53030;
+    }
+    
+    QPushButton#btn_activar_horario {
+        background-color: #3182ce;
+        border-color: #3182ce;
+        color: #ffffff;
+    }
+    
+    QPushButton#btn_activar_horario:hover {
+        background-color: #2c5282;
+        border-color: #2c5282;
     }
     
     /* Group boxes */
@@ -289,7 +334,7 @@
           <string>Activar Programador</string>
          </property>
          <property name="toolTip">
-          <string>Inicia el programador automático que ejecuta las tareas según horarios configurados (Lun-Sab 08:10 a 18:10)</string>
+          <string>Inicia el programador automático que ejecuta las tareas según horarios configurados</string>
          </property>
         </widget>
        </item>
@@ -324,7 +369,7 @@
           <string>Ejecutar Cruce Manual</string>
          </property>
          <property name="toolTip">
-          <string>Ejecuta manualmente el proceso de cruce de datos y engaged (útil para pruebas o ejecuciones fuera de horario)</string>
+          <string>Ejecuta manualmente el proceso de cruce de datos y engaged</string>
          </property>
         </widget>
        </item>
@@ -413,6 +458,74 @@
            <bool>true</bool>
           </attribute>
          </widget>
+        </item>
+        <item>
+         <layout class="QHBoxLayout" name="layout_botones_horarios">
+          <item>
+           <widget class="QPushButton" name="btn_agregar_horario">
+            <property name="minimumSize">
+             <size>
+              <width>120</width>
+              <height>35</height>
+             </size>
+            </property>
+            <property name="text">
+             <string>Agregar</string>
+            </property>
+            <property name="toolTip">
+             <string>Agrega un nuevo horario de ejecución</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QPushButton" name="btn_modificar_horario">
+            <property name="minimumSize">
+             <size>
+              <width>120</width>
+              <height>35</height>
+             </size>
+            </property>
+            <property name="text">
+             <string>Modificar</string>
+            </property>
+            <property name="toolTip">
+             <string>Modifica el horario seleccionado</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QPushButton" name="btn_eliminar_horario">
+            <property name="minimumSize">
+             <size>
+              <width>120</width>
+              <height>35</height>
+             </size>
+            </property>
+            <property name="text">
+             <string>Eliminar</string>
+            </property>
+            <property name="toolTip">
+             <string>Elimina el horario seleccionado</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QPushButton" name="btn_activar_horario">
+            <property name="minimumSize">
+             <size>
+              <width>120</width>
+              <height>35</height>
+             </size>
+            </property>
+            <property name="text">
+             <string>Activar/Desactivar</string>
+            </property>
+            <property name="toolTip">
+             <string>Activa o desactiva el horario seleccionado sin eliminarlo</string>
+            </property>
+           </widget>
+          </item>
+         </layout>
         </item>
        </layout>
       </widget>
