@@ -5,11 +5,12 @@ Los datos persistentes (horarios, logs) se almacenan en %APPDATA%/RPA_Migracion/
 import sys
 import os
 import threading
+import importlib
 from datetime import datetime
 from zoneinfo import ZoneInfo
-from PyQt6 import QtWidgets, uic
+from PyQt6 import QtWidgets, uic, QtGui
 from PyQt6.QtCore import QTimer, Qt, pyqtSignal, QObject, QTime
-from PyQt6.QtWidgets import QMessageBox, QApplication
+from PyQt6.QtWidgets import QMessageBox, QApplication, QFileDialog
 import tareas_migracion
 import horarios
 
@@ -128,7 +129,7 @@ class InterfazPrincipal(QtWidgets.QMainWindow):
 
         self.redirigir_consola = None
         self._hilo_manual = None
-        self._recargando = False  # Flag para evitar recargas concurrentes del programador
+        self._recargando = False
 
         self.cargar_interfaz()
         self.inicializar_tablas()
@@ -138,6 +139,8 @@ class InterfazPrincipal(QtWidgets.QMainWindow):
         self.inicializar_redireccion_consola()
         self.cargar_horarios_en_tabla()
         self.mostrar_mensaje_bienvenida()
+        self.inicializar_rutas()
+        self.cargar_codigo_modulo()
 
     def cargar_interfaz(self):
         """Carga el archivo de interfaz o crea una por defecto"""
@@ -188,7 +191,7 @@ class InterfazPrincipal(QtWidgets.QMainWindow):
     def crear_interfaz_por_defecto(self):
         """Crea la interfaz por codigo si no existe el archivo .ui"""
         self.setWindowTitle("Panel de Automatizacion de Migraciones")
-        self.setGeometry(100, 100, 600, 450)
+        self.setGeometry(100, 100, 780, 620)
 
         central = QtWidgets.QWidget()
         self.setCentralWidget(central)
@@ -211,15 +214,83 @@ class InterfazPrincipal(QtWidgets.QMainWindow):
         self.btn_ejecutar_manual = QtWidgets.QPushButton("Ejecutar Cruce Manual")
         self.btn_detener_programador = QtWidgets.QPushButton("Detener Programador")
         self.btn_detener_programador.setEnabled(False)
+        self.btn_limpiar_consola = QtWidgets.QPushButton("Limpiar Consola")
 
         layout_botones.addWidget(self.btn_iniciar_reloj)
         layout_botones.addWidget(self.btn_ejecutar_manual)
         layout_botones.addWidget(self.btn_detener_programador)
+        layout_botones.addWidget(self.btn_limpiar_consola)
         layout.addLayout(layout_botones)
 
+        self.progress_bar = QtWidgets.QProgressBar()
+        layout.addWidget(self.progress_bar)
+
+        self.tab_widget = QtWidgets.QTabWidget()
+        
+        # Pestaña Consola
+        self.tab_consola = QtWidgets.QWidget()
+        layout_consola = QtWidgets.QVBoxLayout(self.tab_consola)
         self.txt_consola = QtWidgets.QTextEdit()
         self.txt_consola.setReadOnly(True)
-        layout.addWidget(self.txt_consola)
+        layout_consola.addWidget(self.txt_consola)
+        self.tab_widget.addTab(self.tab_consola, "Consola")
+        
+        # Pestaña Estado
+        self.tab_estado = QtWidgets.QWidget()
+        layout_estado = QtWidgets.QVBoxLayout(self.tab_estado)
+        self.tabla_estado = QtWidgets.QTableWidget()
+        layout_estado.addWidget(self.tabla_estado)
+        self.tab_widget.addTab(self.tab_estado, "Estado")
+        
+        # Pestaña Horarios
+        self.tab_horarios = QtWidgets.QWidget()
+        layout_horarios = QtWidgets.QVBoxLayout(self.tab_horarios)
+        self.tabla_horarios = QtWidgets.QTableWidget()
+        layout_horarios.addWidget(self.tabla_horarios)
+        self.tab_widget.addTab(self.tab_horarios, "Horarios")
+        
+        # Pestaña Rutas
+        self.tab_rutas = QtWidgets.QWidget()
+        layout_rutas = QtWidgets.QVBoxLayout(self.tab_rutas)
+        self.combo_modulos_rutas = QtWidgets.QComboBox()
+        self.combo_modulos_rutas.addItems(['Acomulado_Genesys_Cloud', 'Base_Genesys_Cloud', 'Base_Genesys_Engaged', 'Cruce_Genesys_Cloud', 'Genesys_Engaged'])
+        layout_rutas.addWidget(self.combo_modulos_rutas)
+        self.tabla_rutas = QtWidgets.QTableWidget()
+        layout_rutas.addWidget(self.tabla_rutas)
+        layout_btn_rutas = QtWidgets.QHBoxLayout()
+        self.btn_guardar_rutas = QtWidgets.QPushButton("Guardar")
+        self.btn_restaurar_rutas = QtWidgets.QPushButton("Restaurar")
+        layout_btn_rutas.addWidget(self.btn_guardar_rutas)
+        layout_btn_rutas.addWidget(self.btn_restaurar_rutas)
+        layout_rutas.addLayout(layout_btn_rutas)
+        self.tab_widget.addTab(self.tab_rutas, "Rutas")
+        
+        # Pestaña Editor
+        self.tab_editor = QtWidgets.QWidget()
+        layout_editor = QtWidgets.QVBoxLayout(self.tab_editor)
+        self.combo_modulos_editor = QtWidgets.QComboBox()
+        self.combo_modulos_editor.addItems([
+            'Acomulado_Genesys_Cloud.py', 'Base_Genesys_Cloud.py', 
+            'Cruce_Genesys_Cloud.py', 'Genesys_Engaged.py',
+            'horarios.py', 'tareas_migracion.py'
+        ])
+        layout_editor.addWidget(self.combo_modulos_editor)
+        self.txt_editor_codigo = QtWidgets.QTextEdit()
+        self.txt_editor_codigo.setFont(QtGui.QFont("Consolas", 9))
+        layout_editor.addWidget(self.txt_editor_codigo)
+        layout_btn_editor = QtWidgets.QHBoxLayout()
+        self.btn_cargar_codigo = QtWidgets.QPushButton("Cargar")
+        self.btn_guardar_codigo = QtWidgets.QPushButton("Guardar")
+        layout_btn_editor.addWidget(self.btn_cargar_codigo)
+        layout_btn_editor.addWidget(self.btn_guardar_codigo)
+        layout_editor.addLayout(layout_btn_editor)
+        self.tab_widget.addTab(self.tab_editor, "Editor")
+        
+        layout.addWidget(self.tab_widget)
+
+        self.lbl_estado = QtWidgets.QLabel("Estado: Sistema listo | Programador: INACTIVO")
+        self.lbl_estado.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        layout.addWidget(self.lbl_estado)
 
     def conectar_botones(self):
         """Conecta los botones a sus funciones"""
@@ -241,12 +312,25 @@ class InterfazPrincipal(QtWidgets.QMainWindow):
             self.btn_eliminar_horario.clicked.connect(self.eliminar_horario)
         if hasattr(self, 'btn_activar_horario'):
             self.btn_activar_horario.clicked.connect(self.toggle_horario_activo)
+        
+        # Botones de la pestaña de rutas
+        if hasattr(self, 'btn_guardar_rutas'):
+            self.btn_guardar_rutas.clicked.connect(self.guardar_rutas)
+        if hasattr(self, 'btn_restaurar_rutas'):
+            self.btn_restaurar_rutas.clicked.connect(self.restaurar_rutas)
+        if hasattr(self, 'combo_modulos_rutas'):
+            self.combo_modulos_rutas.currentIndexChanged.connect(self.cargar_rutas_modulo)
+
+        # Botones del editor de codigo
+        if hasattr(self, 'btn_cargar_codigo'):
+            self.btn_cargar_codigo.clicked.connect(self.cargar_codigo_modulo)
+        if hasattr(self, 'btn_guardar_codigo'):
+            self.btn_guardar_codigo.clicked.connect(self.guardar_codigo_modulo)
+        if hasattr(self, 'combo_modulos_editor'):
+            self.combo_modulos_editor.currentIndexChanged.connect(self.cargar_codigo_modulo)
 
     def inicializar_senales_ui(self):
-        """Configura las senales thread-safe para actualizar la UI desde hilos secundarios.
-        Sin estas senales, modificar widgets desde otros hilos causa errores y crasheos
-        en PyQt6, lo que era la causa principal del error al modificar horarios.
-        """
+        """Configura las senales thread-safe para actualizar la UI desde hilos secundarios."""
         self.senales = SenalesUI()
         self.senales.habilitar_boton_iniciar.connect(self.btn_iniciar_reloj.setEnabled)
         self.senales.habilitar_boton_manual.connect(self.btn_ejecutar_manual.setEnabled)
@@ -261,7 +345,6 @@ class InterfazPrincipal(QtWidgets.QMainWindow):
         self.temporador_estado.timeout.connect(self.actualizar_estado)
         self.temporador_estado.start(5000)
 
-        # Temporador para rotacion de log (cada 60 segundos)
         self.temporador_log = QTimer()
         self.temporador_log.timeout.connect(self._rotar_log)
         self.temporador_log.start(60000)
@@ -329,16 +412,12 @@ Procesos disponibles:
             QMessageBox.warning(self, "Error", "No se pudo activar el programador")
 
     def detener_programador(self):
-        """Detiene el programador automatico usando senales thread-safe.
-        La detencion del hilo es casi instantanea gracias a threading.Event,
-        y las actualizaciones de UI se hacen via senales para evitar crasheos.
-        """
+        """Detiene el programador automatico usando senales thread-safe."""
         print("Deteniendo programador...")
 
         def _detener():
             try:
                 resultado = horarios.detener_programador()
-                # Actualizar UI via senales thread-safe (NO modificar widgets directamente)
                 if resultado:
                     self.senales.habilitar_boton_iniciar.emit(True)
                     self.senales.habilitar_boton_detener.emit(False)
@@ -362,9 +441,7 @@ Procesos disponibles:
     # =========================================================================
 
     def ejecutar_proceso_manual(self):
-        """Ejecuta el proceso de cruce y engaged manualmente.
-        Usa senales thread-safe para rehabilitar el boton al finalizar.
-        """
+        """Ejecuta el proceso de cruce y engaged manualmente."""
         if self._hilo_manual and self._hilo_manual.is_alive():
             print("Ya hay una ejecucion manual en curso. Espere a que termine.")
             return
@@ -384,7 +461,6 @@ Procesos disponibles:
             except Exception as e:
                 print(f"Error en proceso manual: {str(e)}")
             finally:
-                # Rehabilitar boton via senal thread-safe
                 self.senales.habilitar_boton_manual.emit(True)
 
         self._hilo_manual = threading.Thread(target=ejecutar, daemon=True)
@@ -395,9 +471,7 @@ Procesos disponibles:
     # =========================================================================
 
     def cargar_horarios_en_tabla(self):
-        """Carga los horarios del JSON en la tabla de la interfaz.
-        El JSON se lee desde %APPDATA%/RPA_Migracion/horarios.json.
-        """
+        """Carga los horarios del JSON en la tabla de la interfaz."""
         horarios_data = horarios.cargar_horarios_json()
 
         self.tabla_horarios.setRowCount(0)
@@ -423,7 +497,6 @@ Procesos disponibles:
                 item_activo.setForeground(Qt.GlobalColor.red)
             self.tabla_horarios.setItem(i, 3, item_activo)
 
-            # Guardar el indice del JSON como ID interno (columna oculta)
             self.tabla_horarios.setItem(i, 4, QtWidgets.QTableWidgetItem(str(i)))
 
     def _obtener_label_tarea(self, tarea_key):
@@ -483,9 +556,7 @@ Procesos disponibles:
         return dias
 
     def _obtener_indice_horario(self, fila):
-        """Obtiene el indice del horario en el JSON a partir de la fila de la tabla.
-        Retorna None si no se puede obtener un indice valido.
-        """
+        """Obtiene el indice del horario en el JSON a partir de la fila de la tabla."""
         indice_item = self.tabla_horarios.item(fila, 4)
         if not indice_item:
             return None
@@ -516,10 +587,7 @@ Procesos disponibles:
                     QMessageBox.warning(self, "Error", "No se pudo guardar el horario")
 
     def modificar_horario(self):
-        """Modifica el horario seleccionado en la tabla.
-        Corregido: usa _obtener_indice_horario() para validacion robusta del indice,
-        y try/except para capturar errores inesperados que antes causaban crasheos.
-        """
+        """Modifica el horario seleccionado en la tabla."""
         fila = self.tabla_horarios.currentRow()
         if fila < 0:
             QMessageBox.warning(self, "Atencion", "Seleccione un horario para modificar")
@@ -606,10 +674,7 @@ Procesos disponibles:
                 print(f"Horario {estado}: {horarios_data[indice]['hora']} - {horarios_data[indice]['tarea']}")
 
     def _recargar_programador_si_activo(self):
-        """Recarga la configuracion del programador si esta activo.
-        Usa un flag para evitar recargas concurrentes que podrian causar errores.
-        La recarga se hace en hilo secundario para no bloquear la UI.
-        """
+        """Recarga la configuracion del programador si esta activo."""
         if not horarios.programador.activo:
             return
 
@@ -631,6 +696,220 @@ Procesos disponibles:
         threading.Thread(target=_recargar, daemon=True).start()
 
     # =========================================================================
+    # GESTION DE RUTAS DE ARCHIVOS CON EXPLORADOR
+    # =========================================================================
+
+    def inicializar_rutas(self):
+        """Inicializa la tabla de rutas con la configuración actual y botón explorador"""
+        if hasattr(self, 'tabla_rutas'):
+            self.tabla_rutas.setColumnCount(3)
+            self.tabla_rutas.setHorizontalHeaderLabels(["Variable", "Ruta", "Explorar"])
+            self.tabla_rutas.setColumnWidth(0, 200)
+            self.tabla_rutas.setColumnWidth(1, 420)
+            self.tabla_rutas.setColumnWidth(2, 60)
+            self.cargar_rutas_modulo()
+
+    def cargar_rutas_modulo(self):
+        """Carga las rutas del módulo seleccionado en la tabla con botones de exploración"""
+        if not hasattr(self, 'tabla_rutas') or not hasattr(self, 'combo_modulos_rutas'):
+            return
+
+        modulo = self.combo_modulos_rutas.currentText()
+        self.tabla_rutas.setRowCount(0)
+
+        config_rutas = horarios.cargar_configuracion_rutas()
+
+        if modulo in config_rutas:
+            for row, (key, value) in enumerate(config_rutas[modulo].items()):
+                self.tabla_rutas.insertRow(row)
+                
+                self.tabla_rutas.setItem(row, 0, QtWidgets.QTableWidgetItem(key))
+                
+                item_ruta = QtWidgets.QTableWidgetItem(value)
+                item_ruta.setFlags(item_ruta.flags() | Qt.ItemFlag.ItemIsEditable)
+                self.tabla_rutas.setItem(row, 1, item_ruta)
+                
+                btn_explorar = QtWidgets.QPushButton("...")
+                btn_explorar.setObjectName("btn_explorar_ruta")
+                btn_explorar.setMinimumSize(30, 25)
+                btn_explorar.setMaximumSize(35, 28)
+                btn_explorar.clicked.connect(lambda checked, r=row: self.explorar_ruta(r))
+                btn_explorar.setToolTip("Seleccionar carpeta o archivo con el explorador")
+                
+                btn_explorar.setStyleSheet("""
+                    QPushButton {
+                        background-color: #805ad5;
+                        border: none;
+                        border-radius: 4px;
+                        color: white;
+                        font-weight: bold;
+                        font-size: 12px;
+                    }
+                    QPushButton:hover {
+                        background-color: #6b46c1;
+                    }
+                """)
+                
+                self.tabla_rutas.setCellWidget(row, 2, btn_explorar)
+
+    def explorar_ruta(self, fila):
+        """Abre el explorador de archivos para seleccionar una ruta"""
+        if fila < 0 or fila >= self.tabla_rutas.rowCount():
+            return
+            
+        item_ruta = self.tabla_rutas.item(fila, 1)
+        if not item_ruta:
+            return
+            
+        ruta_actual = item_ruta.text()
+        
+        item_variable = self.tabla_rutas.item(fila, 0)
+        variable = item_variable.text() if item_variable else ""
+        
+        es_carpeta = any(palabra in variable.lower() for palabra in 
+                        ['carpeta', 'base', 'dir', 'ruta_', '_path'])
+        
+        if not es_carpeta:
+            extensiones = ['.csv', '.xlsx', '.xls', '.txt', '.log', '.py']
+            tiene_extension = any(ruta_actual.lower().endswith(ext) for ext in extensiones)
+            es_carpeta = not tiene_extension
+        
+        if es_carpeta:
+            ruta_seleccionada = QFileDialog.getExistingDirectory(
+                self,
+                f"Seleccionar carpeta para: {variable}",
+                ruta_actual if os.path.exists(ruta_actual) else os.path.expanduser("~"),
+                QFileDialog.Option.ShowDirsOnly
+            )
+        else:
+            extension = os.path.splitext(ruta_actual)[1] if ruta_actual else ""
+            filtro = f"*{extension}" if extension else "Todos los archivos (*.*)"
+            
+            ruta_seleccionada, _ = QFileDialog.getOpenFileName(
+                self,
+                f"Seleccionar archivo para: {variable}",
+                ruta_actual if os.path.exists(os.path.dirname(ruta_actual)) else os.path.expanduser("~"),
+                f"{filtro};;Todos los archivos (*.*)"
+            )
+        
+        if ruta_seleccionada:
+            self.tabla_rutas.setItem(fila, 1, QtWidgets.QTableWidgetItem(ruta_seleccionada))
+            print(f"Ruta actualizada: {ruta_seleccionada}")
+
+    def guardar_rutas(self):
+        """Guarda las rutas modificadas en AppData/Roaming"""
+        if not hasattr(self, 'tabla_rutas') or not hasattr(self, 'combo_modulos_rutas'):
+            return
+
+        modulo = self.combo_modulos_rutas.currentText()
+        config_rutas = horarios.cargar_configuracion_rutas()
+
+        for row in range(self.tabla_rutas.rowCount()):
+            key_item = self.tabla_rutas.item(row, 0)
+            value_item = self.tabla_rutas.item(row, 1)
+            if key_item and value_item:
+                if modulo not in config_rutas:
+                    config_rutas[modulo] = {}
+                config_rutas[modulo][key_item.text()] = value_item.text()
+
+        if horarios.guardar_configuracion_rutas(config_rutas):
+            print(f"Rutas del módulo {modulo} guardadas correctamente")
+            QMessageBox.information(self, "Exito", f"Rutas del módulo {modulo} guardadas correctamente")
+            
+            try:
+                modulos_a_recargar = [
+                    'Acomulado_Genesys_Cloud',
+                    'Base_Genesys_Cloud',
+                    'Base_Genesys_Engaged', 
+                    'Cruce_Genesys_Cloud',
+                    'Genesys_Engaged'
+                ]
+                for nombre_modulo in modulos_a_recargar:
+                    if nombre_modulo in sys.modules:
+                        importlib.reload(sys.modules[nombre_modulo])
+                print("Modulos recargados con nuevas rutas")
+            except Exception as e:
+                print(f"Advertencia: No se pudieron recargar todos los modulos: {e}")
+        else:
+            QMessageBox.warning(self, "Error", "No se pudo guardar la configuración de rutas")
+
+    def restaurar_rutas(self):
+        """Restaura las rutas a los valores por defecto"""
+        respuesta = QMessageBox.question(
+            self,
+            "Confirmar",
+            "Esta seguro de restaurar todas las rutas a los valores por defecto?",
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
+        )
+
+        if respuesta == QMessageBox.StandardButton.Yes:
+            config_default = horarios._rutas_por_defecto()
+            if horarios.guardar_configuracion_rutas(config_default):
+                self.cargar_rutas_modulo()
+                print("Rutas restauradas a valores por defecto")
+                QMessageBox.information(self, "Exito", "Rutas restauradas a valores por defecto")
+
+    # =========================================================================
+    # EDITOR DE CODIGO
+    # =========================================================================
+
+    def cargar_codigo_modulo(self):
+        """Carga el código del módulo seleccionado en el editor"""
+        if not hasattr(self, 'combo_modulos_editor') or not hasattr(self, 'txt_editor_codigo'):
+            return
+
+        modulo = self.combo_modulos_editor.currentText()
+        ruta_actual = os.path.join(os.path.dirname(os.path.abspath(__file__)), modulo)
+
+        if os.path.exists(ruta_actual):
+            try:
+                with open(ruta_actual, 'r', encoding='utf-8') as f:
+                    contenido = f.read()
+                self.txt_editor_codigo.setText(contenido)
+                print(f"Codigo de {modulo} cargado")
+            except Exception as e:
+                print(f"Error al cargar {modulo}: {str(e)}")
+                self.txt_editor_codigo.setText(f"# Error al cargar el archivo:\n# {str(e)}")
+        else:
+            self.txt_editor_codigo.setText(f"# El archivo {modulo} no existe en el directorio actual")
+            print(f"Advertencia: {modulo} no encontrado")
+
+    def guardar_codigo_modulo(self):
+        """Guarda los cambios del editor en el archivo del módulo"""
+        if not hasattr(self, 'combo_modulos_editor') or not hasattr(self, 'txt_editor_codigo'):
+            return
+
+        modulo = self.combo_modulos_editor.currentText()
+        ruta_actual = os.path.join(os.path.dirname(os.path.abspath(__file__)), modulo)
+
+        respuesta = QMessageBox.question(
+            self,
+            "Confirmar",
+            f"Esta seguro de guardar los cambios en {modulo}?",
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
+        )
+
+        if respuesta == QMessageBox.StandardButton.Yes:
+            try:
+                contenido = self.txt_editor_codigo.toPlainText()
+                with open(ruta_actual, 'w', encoding='utf-8') as f:
+                    f.write(contenido)
+                print(f"Codigo de {modulo} guardado correctamente")
+                QMessageBox.information(self, "Exito", f"{modulo} guardado correctamente")
+                
+                nombre_modulo = modulo.replace('.py', '')
+                if nombre_modulo in sys.modules:
+                    try:
+                        importlib.reload(sys.modules[nombre_modulo])
+                        print(f"Modulo {nombre_modulo} recargado")
+                    except Exception as e:
+                        print(f"No se pudo recargar {nombre_modulo}: {e}")
+                        print("Recomendacion: Reinicie la aplicacion para aplicar los cambios")
+            except Exception as e:
+                print(f"Error al guardar {modulo}: {str(e)}")
+                QMessageBox.critical(self, "Error", f"Error al guardar:\n{str(e)}")
+
+    # =========================================================================
     # ACTUALIZACION DE ESTADO
     # =========================================================================
 
@@ -648,9 +927,7 @@ Procesos disponibles:
     # =========================================================================
 
     def closeEvent(self, event):
-        """Maneja el evento de cierre de la aplicacion.
-        Detiene el programador y cierra el archivo de log.
-        """
+        """Maneja el evento de cierre de la aplicacion."""
         if horarios.programador.activo:
             respuesta = QMessageBox.question(
                 self,
@@ -679,9 +956,7 @@ Procesos disponibles:
 
 
 class DialogoHorario(QtWidgets.QDialog):
-    """Dialogo para agregar o modificar un horario.
-    Corregido: manejo robusto de datos iniciales con validacion completa.
-    """
+    """Dialogo para agregar o modificar un horario."""
 
     def __init__(self, parent=None, titulo="Horario", datos=None):
         super().__init__(parent)
@@ -735,7 +1010,6 @@ class DialogoHorario(QtWidgets.QDialog):
             self.check_dias[key] = cb
             grid_dias.addWidget(cb, i // 4, i % 4)
 
-        # Pre-seleccionar dias si hay datos
         if datos and "dias" in datos:
             for dia in datos["dias"]:
                 if dia in self.check_dias:
@@ -759,9 +1033,7 @@ class DialogoHorario(QtWidgets.QDialog):
         layout.addLayout(layout_botones)
 
     def obtener_datos(self):
-        """Retorna los datos del dialogo como diccionario.
-        Retorna None si no se selecciono ningun dia.
-        """
+        """Retorna los datos del dialogo como diccionario."""
         hora = self.input_hora.time().toString("HH:mm")
         tarea_label = self.combo_tarea.currentText()
         tarea_key = TAREAS_DISPONIBLES.get(tarea_label, tarea_label)

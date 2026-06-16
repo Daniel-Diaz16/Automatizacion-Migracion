@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>850</width>
-    <height>700</height>
+    <width>780</width>
+    <height>620</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -15,279 +15,273 @@
   </property>
   <property name="styleSheet">
    <string notr="true">
-    /* Fondo principal - gris azulado suave */
     QMainWindow {
         background-color: #f0f2f5;
     }
-    
-    /* Título principal */
     QLabel#lbl_title {
         color: #1a365d;
-        font-size: 18px;
+        font-size: 16px;
         font-weight: bold;
-        padding: 10px;
+        padding: 5px;
         font-family: 'Segoe UI', Arial, sans-serif;
     }
-    
-    /* Subtítulos y etiquetas */
     QLabel#lbl_zona, QLabel#lbl_estado {
         color: #4a5568;
-        font-size: 11px;
+        font-size: 10px;
         font-family: 'Segoe UI', Arial, sans-serif;
     }
-    
-    /* Estilo base para botones */
     QPushButton {
         background-color: #ffffff;
         border: 1px solid #cbd5e0;
-        border-radius: 6px;
+        border-radius: 5px;
         color: #2d3748;
-        font-size: 12px;
+        font-size: 11px;
         font-weight: 500;
-        padding: 8px 15px;
-        min-height: 35px;
+        padding: 6px 12px;
+        min-height: 30px;
         font-family: 'Segoe UI', Arial, sans-serif;
     }
-    
     QPushButton:hover {
         background-color: #edf2f7;
         border-color: #a0aec0;
     }
-    
     QPushButton:pressed {
         background-color: #e2e8f0;
     }
-    
-    /* Botón ACTIVAR PROGRAMADOR - Verde azulado */
     QPushButton#btn_iniciar_reloj {
         background-color: #2c7a7b;
         border-color: #2c7a7b;
         color: #ffffff;
     }
-    
     QPushButton#btn_iniciar_reloj:hover {
         background-color: #285e61;
         border-color: #285e61;
     }
-    
-    /* Botón DETENER PROGRAMADOR - Rojo suave */
     QPushButton#btn_detener_programador {
         background-color: #e53e3e;
         border-color: #e53e3e;
         color: #ffffff;
     }
-    
     QPushButton#btn_detener_programador:hover {
         background-color: #c53030;
         border-color: #c53030;
     }
-    
-    /* Botón EJECUTAR MANUAL - Azul corporativo */
     QPushButton#btn_ejecutar_manual {
         background-color: #3182ce;
         border-color: #3182ce;
         color: #ffffff;
     }
-    
     QPushButton#btn_ejecutar_manual:hover {
         background-color: #2c5282;
         border-color: #2c5282;
     }
-    
-    /* Botón LIMPIAR CONSOLA - Gris */
     QPushButton#btn_limpiar_consola {
         background-color: #718096;
         border-color: #718096;
         color: #ffffff;
     }
-    
     QPushButton#btn_limpiar_consola:hover {
         background-color: #4a5568;
         border-color: #4a5568;
     }
-    
-    /* Botones de gestión de horarios */
-    QPushButton#btn_agregar_horario {
+    QPushButton#btn_guardar_rutas {
         background-color: #38a169;
         border-color: #38a169;
         color: #ffffff;
     }
-    
-    QPushButton#btn_agregar_horario:hover {
+    QPushButton#btn_guardar_rutas:hover {
         background-color: #2f855a;
         border-color: #2f855a;
     }
-    
-    QPushButton#btn_modificar_horario {
+    QPushButton#btn_restaurar_rutas {
         background-color: #d69e2e;
         border-color: #d69e2e;
         color: #ffffff;
     }
-    
-    QPushButton#btn_modificar_horario:hover {
+    QPushButton#btn_restaurar_rutas:hover {
         background-color: #b7791f;
         border-color: #b7791f;
     }
-    
-    QPushButton#btn_eliminar_horario {
-        background-color: #e53e3e;
-        border-color: #e53e3e;
+    QPushButton#btn_guardar_codigo {
+        background-color: #38a169;
+        border-color: #38a169;
         color: #ffffff;
     }
-    
-    QPushButton#btn_eliminar_horario:hover {
-        background-color: #c53030;
-        border-color: #c53030;
+    QPushButton#btn_guardar_codigo:hover {
+        background-color: #2f855a;
+        border-color: #2f855a;
     }
-    
-    QPushButton#btn_activar_horario {
+    QPushButton#btn_cargar_codigo {
         background-color: #3182ce;
         border-color: #3182ce;
         color: #ffffff;
     }
-    
-    QPushButton#btn_activar_horario:hover {
+    QPushButton#btn_cargar_codigo:hover {
         background-color: #2c5282;
         border-color: #2c5282;
     }
-    
-    /* Group boxes */
+    QPushButton#btn_explorar_ruta {
+        background-color: #805ad5;
+        border-color: #805ad5;
+        color: #ffffff;
+        font-size: 14px;
+        padding: 0px 10px;
+        min-width: 35px;
+        min-height: 30px;
+    }
+    QPushButton#btn_explorar_ruta:hover {
+        background-color: #6b46c1;
+        border-color: #6b46c1;
+    }
     QGroupBox {
         color: #2d3748;
         font-weight: 600;
         border: 1px solid #e2e8f0;
-        border-radius: 8px;
-        margin-top: 10px;
-        padding-top: 10px;
+        border-radius: 6px;
+        margin-top: 8px;
+        padding-top: 8px;
         background-color: #ffffff;
     }
-    
     QGroupBox::title {
         subcontrol-origin: margin;
         left: 10px;
         padding: 0 8px 0 8px;
         color: #1a365d;
     }
-    
-    /* Consola de texto */
     QTextEdit {
         background-color: #1a202c;
         color: #a0f0e8;
         border: 1px solid #2d3748;
-        border-radius: 6px;
+        border-radius: 5px;
         font-family: 'Consolas', 'Monaco', monospace;
-        font-size: 10px;
+        font-size: 9px;
         selection-background-color: #3182ce;
     }
-    
-    /* Tablas */
     QTableWidget {
         background-color: #ffffff;
         color: #2d3748;
         border: 1px solid #e2e8f0;
-        border-radius: 6px;
+        border-radius: 5px;
         gridline-color: #edf2f7;
         font-family: 'Segoe UI', Arial, sans-serif;
-        font-size: 11px;
+        font-size: 10px;
     }
-    
     QTableWidget::item:selected {
         background-color: #bee3f8;
         color: #1a365d;
     }
-    
     QHeaderView::section {
         background-color: #f7fafc;
         color: #2d3748;
         font-weight: 600;
-        padding: 8px;
+        padding: 5px;
         border: none;
         border-bottom: 2px solid #e2e8f0;
         font-family: 'Segoe UI', Arial, sans-serif;
-        font-size: 11px;
+        font-size: 10px;
     }
-    
-    /* Barra de progreso */
     QProgressBar {
         border: 1px solid #e2e8f0;
-        border-radius: 4px;
+        border-radius: 3px;
         text-align: center;
         color: #2d3748;
         background-color: #edf2f7;
-        height: 6px;
+        height: 5px;
     }
-    
     QProgressBar::chunk {
         background-color: #3182ce;
-        border-radius: 3px;
+        border-radius: 2px;
     }
-    
-    /* Pestañas (Tabs) */
     QTabWidget::pane {
         border: 1px solid #e2e8f0;
-        border-radius: 8px;
+        border-radius: 6px;
         background-color: #ffffff;
         top: -1px;
     }
-    
     QTabBar::tab {
         background-color: #edf2f7;
         color: #4a5568;
-        padding: 10px 20px;
-        margin-right: 4px;
-        border-top-left-radius: 6px;
-        border-top-right-radius: 6px;
+        padding: 8px 15px;
+        margin-right: 3px;
+        border-top-left-radius: 5px;
+        border-top-right-radius: 5px;
         font-family: 'Segoe UI', Arial, sans-serif;
-        font-size: 11px;
+        font-size: 10px;
         font-weight: 500;
     }
-    
     QTabBar::tab:selected {
         background-color: #ffffff;
         color: #3182ce;
         border-bottom: 2px solid #3182ce;
     }
-    
     QTabBar::tab:hover:!selected {
         background-color: #e2e8f0;
         color: #2d3748;
     }
-    
-    /* Scrollbars */
     QScrollBar:vertical {
         background-color: #f7fafc;
-        width: 10px;
-        border-radius: 5px;
+        width: 8px;
+        border-radius: 4px;
     }
-    
     QScrollBar::handle:vertical {
         background-color: #cbd5e0;
-        border-radius: 5px;
-        min-height: 20px;
+        border-radius: 4px;
+        min-height: 15px;
     }
-    
     QScrollBar::handle:vertical:hover {
         background-color: #a0aec0;
     }
-    
     QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {
         height: 0px;
     }
-    
     QScrollBar:horizontal {
         background-color: #f7fafc;
-        height: 10px;
-        border-radius: 5px;
+        height: 8px;
+        border-radius: 4px;
     }
-    
     QScrollBar::handle:horizontal {
         background-color: #cbd5e0;
-        border-radius: 5px;
-        min-width: 20px;
+        border-radius: 4px;
+        min-width: 15px;
     }
-    
     QScrollBar::handle:horizontal:hover {
         background-color: #a0aec0;
+    }
+    QLineEdit {
+        background-color: #ffffff;
+        border: 1px solid #e2e8f0;
+        border-radius: 4px;
+        padding: 5px;
+        font-family: 'Segoe UI', Arial, sans-serif;
+        font-size: 10px;
+        color: #2d3748;
+    }
+    QLineEdit:focus {
+        border-color: #3182ce;
+        outline: none;
+    }
+    QComboBox {
+        background-color: #ffffff;
+        border: 1px solid #e2e8f0;
+        border-radius: 4px;
+        padding: 5px;
+        font-family: 'Segoe UI', Arial, sans-serif;
+        font-size: 10px;
+        color: #2d3748;
+        min-height: 28px;
+    }
+    QComboBox:focus {
+        border-color: #3182ce;
+    }
+    QComboBox::drop-down {
+        border: none;
+    }
+    QComboBox::down-arrow {
+        image: none;
+        border-left: 4px solid transparent;
+        border-right: 4px solid transparent;
+        border-top: 4px solid #4a5568;
+        margin-right: 6px;
     }
    </string>
   </property>
@@ -326,8 +320,8 @@
         <widget class="QPushButton" name="btn_iniciar_reloj">
          <property name="minimumSize">
           <size>
-           <width>150</width>
-           <height>40</height>
+           <width>130</width>
+           <height>35</height>
           </size>
          </property>
          <property name="text">
@@ -342,8 +336,8 @@
         <widget class="QPushButton" name="btn_detener_programador">
          <property name="minimumSize">
           <size>
-           <width>150</width>
-           <height>40</height>
+           <width>130</width>
+           <height>35</height>
           </size>
          </property>
          <property name="enabled">
@@ -361,8 +355,8 @@
         <widget class="QPushButton" name="btn_ejecutar_manual">
          <property name="minimumSize">
           <size>
-           <width>150</width>
-           <height>40</height>
+           <width>130</width>
+           <height>35</height>
           </size>
          </property>
          <property name="text">
@@ -377,8 +371,8 @@
         <widget class="QPushButton" name="btn_limpiar_consola">
          <property name="minimumSize">
           <size>
-           <width>130</width>
-           <height>40</height>
+           <width>110</width>
+           <height>35</height>
           </size>
          </property>
          <property name="text">
@@ -407,9 +401,12 @@
       <property name="currentIndex">
        <number>0</number>
       </property>
+      <property name="tabPosition">
+       <enum>QTabWidget::North</enum>
+      </property>
       <widget class="QWidget" name="tab_consola">
        <attribute name="title">
-        <string>Consola de Salida</string>
+        <string>Consola</string>
        </attribute>
        <layout class="QVBoxLayout" name="verticalLayout_2">
         <item>
@@ -423,7 +420,7 @@
       </widget>
       <widget class="QWidget" name="tab_estado">
        <attribute name="title">
-        <string>Estado de Procesos</string>
+        <string>Estado</string>
        </attribute>
        <layout class="QVBoxLayout" name="verticalLayout_3">
         <item>
@@ -443,7 +440,7 @@
       </widget>
       <widget class="QWidget" name="tab_horarios">
        <attribute name="title">
-        <string>Horarios Configurados</string>
+        <string>Horarios</string>
        </attribute>
        <layout class="QVBoxLayout" name="verticalLayout_4">
         <item>
@@ -459,71 +456,206 @@
           </attribute>
          </widget>
         </item>
+       </layout>
+      </widget>
+      <widget class="QWidget" name="tab_rutas">
+       <attribute name="title">
+        <string>Rutas</string>
+       </attribute>
+       <layout class="QVBoxLayout" name="verticalLayout_5">
         <item>
-         <layout class="QHBoxLayout" name="layout_botones_horarios">
+         <widget class="QComboBox" name="combo_modulos_rutas">
           <item>
-           <widget class="QPushButton" name="btn_agregar_horario">
+           <property name="text">
+            <string>Acomulado_Genesys_Cloud</string>
+           </property>
+          </item>
+          <item>
+           <property name="text">
+            <string>Base_Genesys_Cloud</string>
+           </property>
+          </item>
+          <item>
+           <property name="text">
+            <string>Base_Genesys_Engaged</string>
+           </property>
+          </item>
+          <item>
+           <property name="text">
+            <string>Cruce_Genesys_Cloud</string>
+           </property>
+          </item>
+          <item>
+           <property name="text">
+            <string>Genesys_Engaged</string>
+           </property>
+          </item>
+         </widget>
+        </item>
+        <item>
+         <widget class="QTableWidget" name="tabla_rutas">
+          <property name="alternatingRowColors">
+           <bool>true</bool>
+          </property>
+          <property name="selectionBehavior">
+           <enum>QAbstractItemView::SelectRows</enum>
+          </property>
+          <attribute name="horizontalHeaderStretchLastSection">
+           <bool>true</bool>
+          </attribute>
+         </widget>
+        </item>
+        <item>
+         <layout class="QHBoxLayout" name="layout_botones_rutas">
+          <item>
+           <widget class="QPushButton" name="btn_guardar_rutas">
             <property name="minimumSize">
              <size>
-              <width>120</width>
-              <height>35</height>
+              <width>100</width>
+              <height>30</height>
              </size>
             </property>
             <property name="text">
-             <string>Agregar</string>
+             <string>Guardar</string>
             </property>
             <property name="toolTip">
-             <string>Agrega un nuevo horario de ejecución</string>
+             <string>Guarda las rutas modificadas en AppData/Roaming</string>
             </property>
            </widget>
           </item>
           <item>
-           <widget class="QPushButton" name="btn_modificar_horario">
+           <widget class="QPushButton" name="btn_restaurar_rutas">
             <property name="minimumSize">
              <size>
-              <width>120</width>
-              <height>35</height>
+              <width>100</width>
+              <height>30</height>
              </size>
             </property>
             <property name="text">
-             <string>Modificar</string>
+             <string>Restaurar</string>
             </property>
             <property name="toolTip">
-             <string>Modifica el horario seleccionado</string>
+             <string>Restaura las rutas a los valores por defecto</string>
             </property>
            </widget>
           </item>
           <item>
-           <widget class="QPushButton" name="btn_eliminar_horario">
+           <spacer name="horizontalSpacer">
+            <property name="orientation">
+             <enum>Qt::Horizontal</enum>
+            </property>
+            <property name="sizeHint" stdset="0">
+             <size>
+              <width>40</width>
+              <height>20</height>
+             </size>
+            </property>
+           </spacer>
+          </item>
+         </layout>
+        </item>
+       </layout>
+      </widget>
+      <widget class="QWidget" name="tab_editor">
+       <attribute name="title">
+        <string>Editor</string>
+       </attribute>
+       <layout class="QVBoxLayout" name="verticalLayout_6">
+        <item>
+         <widget class="QComboBox" name="combo_modulos_editor">
+          <item>
+           <property name="text">
+            <string>Acomulado_Genesys_Cloud.py</string>
+           </property>
+          </item>
+          <item>
+           <property name="text">
+            <string>Base_Genesys_Cloud.py</string>
+           </property>
+          </item>
+          <item>
+           <property name="text">
+            <string>Base_Genesys_Engaged.py</string>
+           </property>
+          </item>
+          <item>
+           <property name="text">
+            <string>Cruce_Genesys_Cloud.py</string>
+           </property>
+          </item>
+          <item>
+           <property name="text">
+            <string>Genesys_Engaged.py</string>
+           </property>
+          </item>
+          <item>
+           <property name="text">
+            <string>horarios.py</string>
+           </property>
+          </item>
+          <item>
+           <property name="text">
+            <string>tareas_migracion.py</string>
+           </property>
+          </item>
+         </widget>
+        </item>
+        <item>
+         <widget class="QTextEdit" name="txt_editor_codigo">
+          <property name="font">
+           <font>
+            <family>Consolas</family>
+            <pointsize>9</pointsize>
+           </font>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <layout class="QHBoxLayout" name="layout_botones_editor">
+          <item>
+           <widget class="QPushButton" name="btn_cargar_codigo">
             <property name="minimumSize">
              <size>
-              <width>120</width>
-              <height>35</height>
+              <width>100</width>
+              <height>30</height>
              </size>
             </property>
             <property name="text">
-             <string>Eliminar</string>
+             <string>Cargar</string>
             </property>
             <property name="toolTip">
-             <string>Elimina el horario seleccionado</string>
+             <string>Carga el código del módulo seleccionado</string>
             </property>
            </widget>
           </item>
           <item>
-           <widget class="QPushButton" name="btn_activar_horario">
+           <widget class="QPushButton" name="btn_guardar_codigo">
             <property name="minimumSize">
              <size>
-              <width>120</width>
-              <height>35</height>
+              <width>100</width>
+              <height>30</height>
              </size>
             </property>
             <property name="text">
-             <string>Activar/Desactivar</string>
+             <string>Guardar</string>
             </property>
             <property name="toolTip">
-             <string>Activa o desactiva el horario seleccionado sin eliminarlo</string>
+             <string>Guarda los cambios realizados en el módulo</string>
             </property>
            </widget>
+          </item>
+          <item>
+           <spacer name="horizontalSpacer_2">
+            <property name="orientation">
+             <enum>Qt::Horizontal</enum>
+            </property>
+            <property name="sizeHint" stdset="0">
+             <size>
+              <width>40</width>
+              <height>20</height>
+             </size>
+            </property>
+           </spacer>
           </item>
          </layout>
         </item>

@@ -1,16 +1,57 @@
-#Acomulado_Genesys_Cloud.py
 import pandas as pd
 import glob
 import os
 import warnings
-
+import json
+import sys
 
 # Silenciar advertencias de excel
 warnings.filterwarnings('ignore', category=UserWarning, module='openpyxl')
 
-# ==========================================
-# 1. FUNCIONES DE EXTRACCION Y LIMPIEZA
-# ==========================================
+
+# =============================================================================
+# FUNCION PARA CARGAR RUTAS DESDE JSON
+# =============================================================================
+
+def obtener_ruta_config():
+    """Obtiene la ruta donde se guarda la configuración en AppData/Roaming"""
+    app_data = os.getenv('APPDATA')
+    config_dir = os.path.join(app_data, 'RPA_Migracion')
+    return os.path.join(config_dir, 'rutas_config.json')
+
+
+def cargar_rutas_modulo():
+    """Carga las rutas del módulo Acomulado_Genesys_Cloud desde el JSON"""
+    ruta_config = obtener_ruta_config()
+    if os.path.exists(ruta_config):
+        try:
+            with open(ruta_config, 'r', encoding='utf-8') as f:
+                config = json.load(f)
+            if 'Acomulado_Genesys_Cloud' in config:
+                return config['Acomulado_Genesys_Cloud']
+        except:
+            pass
+    # Si no existe, usar rutas por defecto
+    return {
+        'ruta_carpeta': r'C:\Users\User\Grupo de Servicios Integrales Chile S.A\Mildred Casas - VTR Operaciones\02.Migracion\09. Bases Genesys\02. Interacciones\Historico\2026',
+        'ruta_salida': r'C:\Users\User\Grupo de Servicios Integrales Chile S.A\Mildred Casas - VTR Operaciones\02.Migracion\10.Corte Migracion\Acomulado.csv',
+        'ruta_dotacion': r'C:\Users\User\Grupo de Servicios Integrales Chile S.A\Mildred Casas - VTR Operaciones\02.Migracion\10.Corte Migracion\Dotacion VTR Operaciones.xlsx'
+    }
+
+
+# Cargar rutas desde JSON
+_RUTAS = cargar_rutas_modulo()
+
+# Asignar variables globales
+ruta_carpeta = _RUTAS['ruta_carpeta']
+ruta_salida = _RUTAS['ruta_salida']
+ruta_dotacion = _RUTAS['ruta_dotacion']
+
+
+# =============================================================================
+# FUNCIONES DE EXTRACCION Y LIMPIEZA
+# =============================================================================
+
 def extraer_tipificacion(conclusion):
     if pd.isna(conclusion) or str(conclusion).strip() == "":
         return None
@@ -18,6 +59,7 @@ def extraer_tipificacion(conclusion):
     if len(partes) >= 2:
         return partes[1]
     return conclusion
+
 
 def crear_agente_inicial(texto):
     if pd.isna(texto) or str(texto).strip() == "":
@@ -35,13 +77,10 @@ def crear_agente_inicial(texto):
             
     return texto_str
 
-# ==========================================
-# 2. RUTAS Y DICCIONARIOS
-# ==========================================
 
-ruta_carpeta = r'C:\Users\User\Grupo de Servicios Integrales Chile S.A\Mildred Casas - VTR Operaciones\02.Migracion\09. Bases Genesys\02. Interacciones\Historico\2026' 
-ruta_salida = r'C:\Users\User\Grupo de Servicios Integrales Chile S.A\Mildred Casas - VTR Operaciones\02.Migracion\10.Corte Migracion\Acomulado.csv'
-ruta_dotacion = r'C:\Users\User\Grupo de Servicios Integrales Chile S.A\Mildred Casas - VTR Operaciones\02.Migracion\10.Corte Migracion\Dotacion VTR Operaciones.xlsx'
+# =============================================================================
+# DICCIONARIOS DE REEMPLAZOS
+# =============================================================================
 
 reemplazos_nombres = {
     "Diana Carolina Llorente  Almanza": "Diana Carolina Llorente Almanza",
@@ -118,12 +157,12 @@ columnas_expandidas = [
 ]
 
 
+# =============================================================================
+# PROCESO PRINCIPAL
+# =============================================================================
+
 def main():
     """Funcion principal que ejecuta todo el proceso de Acumulado Genesys Cloud"""
-
-    # ==========================================
-    # 3. LECTURA Y UNION DE ARCHIVOS
-    # ==========================================
 
     archivos_csv = glob.glob(os.path.join(ruta_carpeta, "**", "*.csv"), recursive=True)
 
@@ -159,10 +198,6 @@ def main():
             except Exception as e2:
                 print(f"Error crítico al leer {archivo}: {e2}")
 
-    # ==========================================
-    # 4. LIMPIEZA MAESTRA DE DATOS
-    # ==========================================
-    
     if not lista_tablas:
         print("No se pudo cargar ningun archivo.")
         return
@@ -213,9 +248,7 @@ def main():
     if "Tipificacion" in base_final.columns:
         base_final = base_final[base_final['Tipificacion'].str.contains(r"ACEPTA AGENDA - MIGRACION|ACEPTA REINGRESO MIGRACION", case=False, na=False, regex=True)]
 
-    # =================================================================
     # --- Separación, Formato y FILTRO ESTRICTO DE FECHAS ---
-    # =================================================================
     if "Fecha" in base_final.columns:
         base_final['Fecha'] = base_final['Fecha'].astype(str)
         partes = base_final['Fecha'].str.split(' ', n=1, expand=True)
@@ -224,17 +257,11 @@ def main():
         base_final['Hora'] = partes[1].fillna("00:00")
         base_final['Hora'] = pd.to_datetime(base_final['Hora'], format='%H:%M', errors='coerce').dt.strftime('%H:%M').fillna("00:00")
 
-        # 1. Convertir la columna de texto a formato fecha
         base_final['Fecha_Temp'] = pd.to_datetime(base_final['Fecha'], dayfirst=True, errors='coerce')
         
-        # 2. Calcular los límites EXACTOS
         hoy_chile = pd.Timestamp.now(tz='America/Santiago').tz_localize(None).normalize() 
         inicio_este_mes = hoy_chile.replace(day=1)
-        
-        # Límite Inferior (10 días antes del inicio de este mes)
         fecha_limite_inferior = inicio_este_mes - pd.Timedelta(days=10)
-        
-        # Límite Superior (Último día de este mes)
         inicio_siguiente_mes = (inicio_este_mes + pd.Timedelta(days=32)).replace(day=1)
         fecha_limite_superior = inicio_siguiente_mes - pd.Timedelta(days=1)
         
@@ -244,17 +271,11 @@ def main():
         print(f"-> Hasta: {fecha_limite_superior.strftime('%d/%m/%Y')} (Fin de este mes)")
         print("-"  *40)
         
-        # 3. Aplicar el filtro cerrado
         filtro_fechas = (base_final['Fecha_Temp'] >= fecha_limite_inferior) & (base_final['Fecha_Temp'] <= fecha_limite_superior)
         base_final = base_final[filtro_fechas]
-        
-        # 4. Eliminar la columna temporal
         base_final = base_final.drop(columns=['Fecha_Temp'])
 
-
-    # ==========================================
-    # 5. ORDENAMIENTO Y EXPORTACIÓN FINAL
-    # ==========================================
+    # --- Ordenamiento y Exportación Final ---
     columnas_finales = [
         "Fecha",
         "Hora",

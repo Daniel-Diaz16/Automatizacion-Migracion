@@ -1,9 +1,56 @@
-#Base_Genesys_Cloud.py
 import pandas as pd
 import glob
 import os
+import json
+import sys
 from datetime import datetime, timedelta
 
+
+# =============================================================================
+# FUNCION PARA CARGAR RUTAS DESDE JSON
+# =============================================================================
+
+def obtener_ruta_config():
+    """Obtiene la ruta donde se guarda la configuración en AppData/Roaming"""
+    app_data = os.getenv('APPDATA')
+    config_dir = os.path.join(app_data, 'RPA_Migracion')
+    return os.path.join(config_dir, 'rutas_config.json')
+
+
+def cargar_rutas_modulo():
+    """Carga las rutas del módulo Base_Genesys_Cloud desde el JSON"""
+    ruta_config = obtener_ruta_config()
+    if os.path.exists(ruta_config):
+        try:
+            with open(ruta_config, 'r', encoding='utf-8') as f:
+                config = json.load(f)
+            if 'Base_Genesys_Cloud' in config:
+                return config['Base_Genesys_Cloud']
+        except:
+            pass
+    # Si no existe, usar rutas por defecto
+    return {
+        'ruta_base': r'C:\Users\User\Grupo de Servicios Integrales Chile S.A\Mildred Casas - VTR Operaciones\02.Migracion\09. Bases Genesys\01. Contact_List',
+        'ruta_salida': r'C:\Users\User\Grupo de Servicios Integrales Chile S.A\Mildred Casas - VTR Operaciones\02.Migracion\10.Corte Migracion\Base_Genesys_Cloud.xlsx',
+        'ruta_bases_cloud': r'C:\Users\User\Grupo de Servicios Integrales Chile S.A\Mildred Casas - VTR Operaciones\02.Migracion\10.Corte Migracion\Genesys Cloud Bases'
+    }
+
+
+# Cargar rutas desde JSON
+_RUTAS = cargar_rutas_modulo()
+
+# Asignar variables globales
+ruta_base = _RUTAS['ruta_base']
+ruta_salida = _RUTAS['ruta_salida']
+ruta_bases_cloud = _RUTAS['ruta_bases_cloud']
+
+# Rutas que se construyen a partir de ruta_base
+ruta_cargue_actual = os.path.join(ruta_base, 'Cargue Actual')
+
+
+# =============================================================================
+# FUNCIONES DE FECHAS PARA EL MES PASADO
+# =============================================================================
 
 hoy = datetime.now()
 mes_pasado_fecha = hoy.replace(day=1) - timedelta(days=6)
@@ -18,13 +65,15 @@ num_mes = mes_pasado_fecha.strftime('%m')
 nombre_mes = meses_espanol[mes_pasado_fecha.month]
 carpeta_mes_pasado = f"{num_mes}. {nombre_mes}"
 
-
-ruta_base = r'C:\Users\User\Grupo de Servicios Integrales Chile S.A\Mildred Casas - VTR Operaciones\02.Migracion\09. Bases Genesys\01. Contact_List'
-ruta_salida = r'C:\Users\User\Grupo de Servicios Integrales Chile S.A\Mildred Casas - VTR Operaciones\02.Migracion\10.Corte Migracion\Base_Genesys_Cloud.xlsx'
-ruta_cargue_actual = os.path.join(ruta_base, 'Cargue Actual')
+# La ruta historico se construye con las variables
 ruta_historico_mes_pasado = os.path.join(
-ruta_base, 'Historico', anio_pasado, carpeta_mes_pasado)
-ruta_bases_cloud = r'C:\Users\User\Grupo de Servicios Integrales Chile S.A\Mildred Casas - VTR Operaciones\02.Migracion\10.Corte Migracion\Genesys Cloud Bases'
+    ruta_base, 'Historico', anio_pasado, carpeta_mes_pasado
+)
+
+
+# =============================================================================
+# COLUMNAS REQUERIDAS
+# =============================================================================
 
 columnas_expandidas = [
     'inin-outbound-id',
@@ -35,6 +84,10 @@ columnas_expandidas = [
     'Segment_of_Origin'
 ]
 
+
+# =============================================================================
+# PROCESO PRINCIPAL
+# =============================================================================
 
 def main():
     """Funcion principal que ejecuta todo el proceso de Base Genesys Cloud"""

@@ -1,8 +1,9 @@
-#Cruce_Genesys_Cloud.py
 import pandas as pd
 import glob
 import os
 import warnings
+import json
+import sys
 from datetime import datetime, timedelta
 
 # Silenciar advertencias de formato
@@ -10,8 +11,58 @@ warnings.simplefilter("ignore", UserWarning)
 
 
 # =============================================================================
-# 2. FUNCIONES DE LIMPIEZA
+# FUNCION PARA CARGAR RUTAS DESDE JSON
 # =============================================================================
+
+def obtener_ruta_config():
+    """Obtiene la ruta donde se guarda la configuración en AppData/Roaming"""
+    app_data = os.getenv('APPDATA')
+    config_dir = os.path.join(app_data, 'RPA_Migracion')
+    return os.path.join(config_dir, 'rutas_config.json')
+
+
+def cargar_rutas_modulo():
+    """Carga las rutas del módulo Cruce_Genesys_Cloud desde el JSON"""
+    ruta_config = obtener_ruta_config()
+    if os.path.exists(ruta_config):
+        try:
+            with open(ruta_config, 'r', encoding='utf-8') as f:
+                config = json.load(f)
+            if 'Cruce_Genesys_Cloud' in config:
+                return config['Cruce_Genesys_Cloud']
+        except:
+            pass
+    # Si no existe, usar rutas por defecto
+    return {
+        'ruta_carpeta': r'C:\Users\User\Grupo de Servicios Integrales Chile S.A\Mildred Casas - VTR Operaciones\02.Migracion\10.Corte Migracion\Genesys Cloud',
+        'ruta_salida': r'C:\Users\User\Grupo de Servicios Integrales Chile S.A\Mildred Casas - VTR Operaciones\02.Migracion\10.Corte Migracion\Base_Consolidada_Agentes.csv',
+        'ruta_base_genesys': r'C:\Users\User\Grupo de Servicios Integrales Chile S.A\Mildred Casas - VTR Operaciones\02.Migracion\10.Corte Migracion\Base_Genesys_Cloud.xlsx',
+        'ruta_dotacion': r'C:\Users\User\Grupo de Servicios Integrales Chile S.A\Mildred Casas - VTR Operaciones\02.Migracion\10.Corte Migracion\Dotacion VTR Operaciones.xlsx',
+        'ruta_cuartiles': r'C:\Users\User\Grupo de Servicios Integrales Chile S.A\Mildred Casas - VTR Operaciones\02.Migracion\10.Corte Migracion\Cuartiles.xlsx',
+        'ruta_malla_de_turnos': r'C:\Users\User\Grupo de Servicios Integrales Chile S.A\Mildred Casas - VTR Operaciones\02.Migracion\10.Corte Migracion\Malla de turnos diaria.xlsx',
+        'ruta_genesys_bases': r'C:\Users\User\Grupo de Servicios Integrales Chile S.A\Mildred Casas - VTR Operaciones\02.Migracion\10.Corte Migracion\Genesys Cloud Bases',
+        'ruta_acomulado': r'C:\Users\User\Grupo de Servicios Integrales Chile S.A\Mildred Casas - VTR Operaciones\02.Migracion\10.Corte Migracion\Acomulado.csv'
+    }
+
+
+# Cargar rutas desde JSON
+_RUTAS = cargar_rutas_modulo()
+
+# Asignar variables globales
+ruta_carpeta = _RUTAS['ruta_carpeta']
+ruta_salida = _RUTAS['ruta_salida']
+ruta_base_genesys = _RUTAS['ruta_base_genesys']
+ruta_dotacion = _RUTAS['ruta_dotacion']
+ruta_cuartiles = _RUTAS['ruta_cuartiles']
+ruta_malla_de_turnos = _RUTAS['ruta_malla_de_turnos']
+ruta_genesys_bases = _RUTAS['ruta_genesys_bases']
+ruta_acomulado = _RUTAS['ruta_acomulado']
+
+
+# =============================================================================
+# FUNCIONES DE LIMPIEZA
+# =============================================================================
+
 def extraer_tipificacion(conclusion):
     if pd.isna(conclusion) or str(conclusion).strip() == "":
         return None
@@ -38,16 +89,8 @@ def crear_agente_inicial(usuario):
 
 
 # =============================================================================
-# 3. RUTAS Y DICCIONARIOS
+# DICCIONARIOS
 # =============================================================================
-ruta_carpeta = r'C:\Users\User\Grupo de Servicios Integrales Chile S.A\Mildred Casas - VTR Operaciones\02.Migracion\10.Corte Migracion\Genesys Cloud'
-ruta_salida = r'C:\Users\User\Grupo de Servicios Integrales Chile S.A\Mildred Casas - VTR Operaciones\02.Migracion\10.Corte Migracion\Base_Consolidada_Agentes.csv'
-ruta_base_genesys = r'C:\Users\User\Grupo de Servicios Integrales Chile S.A\Mildred Casas - VTR Operaciones\02.Migracion\10.Corte Migracion\Base_Genesys_Cloud.xlsx'
-ruta_dotacion = r'C:\Users\User\Grupo de Servicios Integrales Chile S.A\Mildred Casas - VTR Operaciones\02.Migracion\10.Corte Migracion\Dotacion VTR Operaciones.xlsx'
-ruta_cuartiles = r'C:\Users\User\Grupo de Servicios Integrales Chile S.A\Mildred Casas - VTR Operaciones\02.Migracion\10.Corte Migracion\Cuartiles.xlsx'
-ruta_malla_de_turnos = r'C:\Users\User\Grupo de Servicios Integrales Chile S.A\Mildred Casas - VTR Operaciones\02.Migracion\10.Corte Migracion\Malla de turnos diaria.xlsx'
-ruta_genesys_bases = r'C:\Users\User\Grupo de Servicios Integrales Chile S.A\Mildred Casas - VTR Operaciones\02.Migracion\10.Corte Migracion\Genesys Cloud Bases'
-ruta_acomulado = r'C:\Users\User\Grupo de Servicios Integrales Chile S.A\Mildred Casas - VTR Operaciones\02.Migracion\10.Corte Migracion\Acomulado.csv'
 
 reemplazos_nombres = {
     "Diana Carolina Llorente  Almanza": "Diana Carolina Llorente Almanza",
@@ -103,8 +146,7 @@ reemplazos_nombres = {
     "Brian Alejandro Cantor Umaã%91A": "Brian Alejandro Cantor Umaña",
     "Yuliana Ximena Ordoã%91Ez Cifuentes": "Yuliana Ximena Ordoñez Cifuentes",
     "Andrea Carolina Ruiz Peã%91A": "Andrea Carolina Ruiz Peña"
-
-    }
+}
 
 correccion_columnas = {
     "ExportaciÃ³n completa finalizada": "Exportación completa finalizada",
@@ -119,6 +161,10 @@ columnas_expandidas = [
     "Usuarios", "Fecha", "Dirección", "DNIS", "Cola", "Conclusión", "Identificación de contacto"
 ]
 
+
+# =============================================================================
+# PROCESO PRINCIPAL
+# =============================================================================
 
 def main():
     """Funcion principal que ejecuta todo el proceso de cruce Genesys Cloud"""

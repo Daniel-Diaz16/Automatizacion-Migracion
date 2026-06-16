@@ -21,10 +21,7 @@ ZONA_COLOMBIA = ZoneInfo("America/Bogota")
 # =============================================================================
 
 def obtener_directorio_datos():
-    """Obtiene el directorio de datos de la aplicacion en %APPDATA%/RPA_Migracion.
-    En Windows usa %APPDATA%, en otros sistemas usa ~/.RPA_Migracion.
-    Crea el directorio si no existe.
-    """
+    """Obtiene el directorio de datos de la aplicacion en %APPDATA%/RPA_Migracion."""
     if sys.platform == 'win32':
         base = os.environ.get('APPDATA', os.path.expanduser('~'))
     else:
@@ -35,9 +32,7 @@ def obtener_directorio_datos():
 
 
 def obtener_ruta_log(nombre='rpa_migracion'):
-    """Obtiene la ruta del archivo de log diario en %APPDATA%/RPA_Migracion/logs/.
-    El nombre del archivo incluye la fecha actual (Colombia) para rotacion automatica.
-    """
+    """Obtiene la ruta del archivo de log diario en %APPDATA%/RPA_Migracion/logs/."""
     dir_logs = os.path.join(obtener_directorio_datos(), 'logs')
     os.makedirs(dir_logs, exist_ok=True)
     fecha = datetime.now(ZONA_COLOMBIA).strftime('%Y-%m-%d')
@@ -49,15 +44,10 @@ def obtener_ruta_log(nombre='rpa_migracion'):
 # =============================================================================
 
 ARCHIVO_HORARIOS = os.path.join(obtener_directorio_datos(), 'horarios.json')
-
-# Ruta legacy (mismo directorio del script) para migracion automatica
 _ARCHIVO_HORARIOS_LEGACY = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'horarios.json')
 
 
 def _migrar_horarios_legacy():
-    """Migra horarios.json del directorio del script a %APPDATA% si corresponde.
-    Solo se ejecuta si el archivo legacy existe y el nuevo no.
-    """
     if os.path.exists(_ARCHIVO_HORARIOS_LEGACY) and not os.path.exists(ARCHIVO_HORARIOS):
         try:
             shutil.copy2(_ARCHIVO_HORARIOS_LEGACY, ARCHIVO_HORARIOS)
@@ -65,12 +55,9 @@ def _migrar_horarios_legacy():
         except Exception as e:
             print(f"No se pudieron migrar los horarios: {e}")
 
-
-# Ejecutar migracion al importar el modulo
 _migrar_horarios_legacy()
 
 
-# Horarios por defecto que se cargan si no existe el archivo JSON
 HORARIOS_POR_DEFECTO = [
     {"hora": "08:10", "tarea": "cruce_engaged", "dias": ["lunes", "martes", "miercoles", "jueves", "viernes"], "activo": True},
     {"hora": "08:50", "tarea": "acumulado_base", "dias": ["lunes", "martes", "miercoles", "jueves", "viernes", "sabado"], "activo": True},
@@ -99,7 +86,7 @@ MAPEO_DIAS_SCHEDULE = {
 
 MAPEO_TAREAS = {
     "cruce_engaged": tareas_migracion.procesar_cruces_y_engaged,
-    "acumulado_base": None,  # Se resuelve dinamicamente para ejecutar ambos
+    "acumulado_base": None,
     "acumulado": tareas_migracion.procesar_acumulado,
     "base_cloud": tareas_migracion.procesar_base_cloud,
     "cruce": tareas_migracion.procesar_cruces,
@@ -108,7 +95,6 @@ MAPEO_TAREAS = {
 
 
 def cargar_horarios_json():
-    """Carga la configuracion de horarios desde el archivo JSON en %APPDATA%"""
     if os.path.exists(ARCHIVO_HORARIOS):
         try:
             with open(ARCHIVO_HORARIOS, 'r', encoding='utf-8') as f:
@@ -121,7 +107,6 @@ def cargar_horarios_json():
 
 
 def guardar_horarios_json(horarios):
-    """Guarda la configuracion de horarios en el archivo JSON en %APPDATA%"""
     try:
         with open(ARCHIVO_HORARIOS, 'w', encoding='utf-8') as f:
             json.dump(horarios, f, indent=2, ensure_ascii=False)
@@ -132,7 +117,6 @@ def guardar_horarios_json(horarios):
 
 
 def _ejecutar_tarea(nombre_tarea):
-    """Ejecuta la tarea correspondiente segun el nombre"""
     if nombre_tarea == "acumulado_base":
         tareas_migracion.procesar_acumulado()
         tareas_migracion.procesar_base_cloud()
@@ -143,8 +127,6 @@ def _ejecutar_tarea(nombre_tarea):
 
 
 class ProgramadorHorario:
-    """Clase que maneja la programacion de tareas con zona horaria Colombia"""
-
     def __init__(self):
         self.hilo_programador = None
         self._parar_evento = threading.Event()
@@ -153,133 +135,194 @@ class ProgramadorHorario:
 
     @property
     def activo(self):
-        """Propiedad que indica si el programador esta activo"""
         return not self._parar_evento.is_set() and self.hilo_programador is not None and self.hilo_programador.is_alive()
 
     def obtener_hora_colombia(self):
-        """Retorna hora actual de Colombia"""
         return datetime.now(ZONA_COLOMBIA)
 
     def configurar_horarios(self, horarios_personalizados=None):
-        """Configura las horas segun la configuracion proporcionada o la del JSON"""
         with self._lock:
             schedule.clear()
             self.tareas_registradas = []
-
             horarios = horarios_personalizados or cargar_horarios_json()
-
             for entrada in horarios:
                 if not entrada.get("activo", True):
                     continue
-
                 hora = entrada["hora"]
                 tarea = entrada["tarea"]
                 dias = entrada.get("dias", [])
-
                 for dia in dias:
                     dia_en = MAPEO_DIAS_SCHEDULE.get(dia)
                     if not dia_en:
                         continue
-
                     dia_schedule = getattr(schedule.every(), dia_en, None)
                     if dia_schedule is None:
                         continue
-
                     dia_schedule.at(hora).do(_ejecutar_tarea, nombre_tarea=tarea)
                     self.tareas_registradas.append((tarea, hora, dia))
-
             print(f"Horarios configurados. {len(self.tareas_registradas)} tareas programadas")
             return True
 
     def ejecutar_bucle(self):
-        """Bucle principal del programador - usa Event.wait() para detener instantaneamente"""
         print(f"Programador activado. Hora Colombia: {self.obtener_hora_colombia().strftime('%H:%M:%S')}")
-
         while not self._parar_evento.is_set():
             try:
                 schedule.run_pending()
-                # wait() reemplaza time.sleep(): se despierta instantaneamente
-                # cuando se setea el evento (detener), maximo espera 5 segundos
                 self._parar_evento.wait(timeout=5)
             except Exception as e:
                 print(f"Error en programador: {str(e)}")
                 self._parar_evento.wait(timeout=3)
-
         print("Programador desactivado")
 
     def iniciar(self):
-        """Inicia el programador en un hilo separado"""
         if self.activo:
             print("El programador ya esta activo")
             return False
-
         self._parar_evento.clear()
         self.configurar_horarios()
-
         self.hilo_programador = threading.Thread(target=self.ejecutar_bucle, daemon=True)
         self.hilo_programador.start()
-
         return True
 
     def detener(self):
-        """Detiene el programador y limpia recursos - detencion casi instantanea"""
-        # Senializar al hilo que debe detenerse (despierta del wait() inmediatamente)
         self._parar_evento.set()
-
-        # Esperar a que el hilo termine (responde en milisegundos gracias a Event)
         if self.hilo_programador and self.hilo_programador.is_alive():
             self.hilo_programador.join(timeout=2)
-
-        # Limpiar todas las tareas de schedule
         schedule.clear()
         self.tareas_registradas = []
         self.hilo_programador = None
-
         return True
 
     def obtener_proxima_tarea(self):
-        """Retorna informacion de la proxima tarea a ejecutar"""
         try:
             proximo = schedule.next_run()
             if proximo:
-                return {
-                    'hora': proximo.strftime('%H:%M:%S'),
-                    'fecha': proximo.strftime('%d/%m/%Y')
-                }
+                return {'hora': proximo.strftime('%H:%M:%S'), 'fecha': proximo.strftime('%d/%m/%Y')}
         except Exception:
             pass
         return None
 
     def reiniciar(self):
-        """Detiene y vuelve a iniciar el programador"""
         self.detener()
         return self.iniciar()
 
 
-# Instancia global
 programador = ProgramadorHorario()
 
 
 def iniciar_programador():
-    """Funcion publica para iniciar el programador"""
     return programador.iniciar()
 
 
 def detener_programador():
-    """Funcion publica para detener el programador"""
     return programador.detener()
 
 
 def configurar_rutinas(horarios_personalizados=None):
-    """Funcion publica para configurar rutinas"""
     return programador.configurar_horarios(horarios_personalizados)
 
 
 def obtener_proxima_tarea():
-    """Funcion publica para obtener proxima tarea"""
     return programador.obtener_proxima_tarea()
 
 
 def reiniciar_programador():
-    """Funcion publica para reiniciar el programador"""
     return programador.reiniciar()
+
+
+# =============================================================================
+# CONFIGURACION DE RUTAS EN APPDATA - CON TODAS LAS RUTAS
+# =============================================================================
+
+def _rutas_por_defecto():
+    """Retorna las rutas por defecto para todos los modulos - CON TODAS LAS RUTAS"""
+    return {
+        'Acomulado_Genesys_Cloud': {
+            'ruta_carpeta': r'C:\Users\User\Grupo de Servicios Integrales Chile S.A\Mildred Casas - VTR Operaciones\02.Migracion\09. Bases Genesys\02. Interacciones\Historico\2026',
+            'ruta_salida': r'C:\Users\User\Grupo de Servicios Integrales Chile S.A\Mildred Casas - VTR Operaciones\02.Migracion\10.Corte Migracion\Acomulado.csv',
+            'ruta_dotacion': r'C:\Users\User\Grupo de Servicios Integrales Chile S.A\Mildred Casas - VTR Operaciones\02.Migracion\10.Corte Migracion\Dotacion VTR Operaciones.xlsx'
+        },
+        'Base_Genesys_Cloud': {
+            'ruta_base': r'C:\Users\User\Grupo de Servicios Integrales Chile S.A\Mildred Casas - VTR Operaciones\02.Migracion\09. Bases Genesys\01. Contact_List',
+            'ruta_salida': r'C:\Users\User\Grupo de Servicios Integrales Chile S.A\Mildred Casas - VTR Operaciones\02.Migracion\10.Corte Migracion\Base_Genesys_Cloud.xlsx',
+            'ruta_cargue_actual': r'C:\Users\User\Grupo de Servicios Integrales Chile S.A\Mildred Casas - VTR Operaciones\02.Migracion\09. Bases Genesys\01. Contact_List\Cargue Actual',
+            'ruta_historico_mes_pasado': r'C:\Users\User\Grupo de Servicios Integrales Chile S.A\Mildred Casas - VTR Operaciones\02.Migracion\09. Bases Genesys\01. Contact_List\Historico',
+            'ruta_bases_cloud': r'C:\Users\User\Grupo de Servicios Integrales Chile S.A\Mildred Casas - VTR Operaciones\02.Migracion\10.Corte Migracion\Genesys Cloud Bases'
+        },
+        'Base_Genesys_Engaged': {
+            'RUTA_BASES': r'C:\Users\User\Grupo de Servicios Integrales Chile S.A\Mildred Casas - VTR Operaciones\02.Migracion\10.Corte Migracion\Genesys Engaged Bases',
+            'RUTA_SALIDA': r'C:\Users\User\Grupo de Servicios Integrales Chile S.A\Mildred Casas - VTR Operaciones\02.Migracion\10.Corte Migracion\Base_Genesys_Engaged.xlsx'
+        },
+        'Cruce_Genesys_Cloud': {
+            'ruta_carpeta': r'C:\Users\User\Grupo de Servicios Integrales Chile S.A\Mildred Casas - VTR Operaciones\02.Migracion\10.Corte Migracion\Genesys Cloud',
+            'ruta_salida': r'C:\Users\User\Grupo de Servicios Integrales Chile S.A\Mildred Casas - VTR Operaciones\02.Migracion\10.Corte Migracion\Base_Consolidada_Agentes.csv',
+            'ruta_base_genesys': r'C:\Users\User\Grupo de Servicios Integrales Chile S.A\Mildred Casas - VTR Operaciones\02.Migracion\10.Corte Migracion\Base_Genesys_Cloud.xlsx',
+            'ruta_dotacion': r'C:\Users\User\Grupo de Servicios Integrales Chile S.A\Mildred Casas - VTR Operaciones\02.Migracion\10.Corte Migracion\Dotacion VTR Operaciones.xlsx',
+            'ruta_cuartiles': r'C:\Users\User\Grupo de Servicios Integrales Chile S.A\Mildred Casas - VTR Operaciones\02.Migracion\10.Corte Migracion\Cuartiles.xlsx',
+            'ruta_malla_de_turnos': r'C:\Users\User\Grupo de Servicios Integrales Chile S.A\Mildred Casas - VTR Operaciones\02.Migracion\10.Corte Migracion\Malla de turnos diaria.xlsx',
+            'ruta_genesys_bases': r'C:\Users\User\Grupo de Servicios Integrales Chile S.A\Mildred Casas - VTR Operaciones\02.Migracion\10.Corte Migracion\Genesys Cloud Bases',
+            'ruta_acomulado': r'C:\Users\User\Grupo de Servicios Integrales Chile S.A\Mildred Casas - VTR Operaciones\02.Migracion\10.Corte Migracion\Acomulado.csv'
+        },
+        'Genesys_Engaged': {
+            'OUTPUT_FILENAME': r'C:\Users\User\Grupo de Servicios Integrales Chile S.A\Mildred Casas - VTR Operaciones\02.Migracion\10.Corte Migracion\Formulario Engaged.xlsx',
+            'RUTA_DOTACION': r'C:\Users\User\Grupo de Servicios Integrales Chile S.A\Mildred Casas - VTR Operaciones\02.Migracion\10.Corte Migracion\Dotacion VTR Operaciones.xlsx',
+            'RUTA_LLAMadas': r'C:\Users\User\Grupo de Servicios Integrales Chile S.A\Mildred Casas - VTR Operaciones\02.Migracion\10.Corte Migracion\Llamada x agente.csv',
+            'RUTA_CUARTILES': r'C:\Users\User\Grupo de Servicios Integrales Chile S.A\Mildred Casas - VTR Operaciones\02.Migracion\10.Corte Migracion\Cuartiles.xlsx',
+            'RUTA_MALLA_TURNOS': r'C:\Users\User\Grupo de Servicios Integrales Chile S.A\Mildred Casas - VTR Operaciones\02.Migracion\10.Corte Migracion\Malla de turnos diaria.xlsx',
+            'RUTA_CAMPAIGN': r'C:\Users\User\Grupo de Servicios Integrales Chile S.A\Mildred Casas - VTR Operaciones\02.Migracion\10.Corte Migracion\Campaign Activity.csv',
+            'RUTA_BASES_RSL': r'C:\Users\User\Grupo de Servicios Integrales Chile S.A\Mildred Casas - VTR Operaciones\02.Migracion\10.Corte Migracion\Genesys Engaged Bases'
+        }
+    }
+
+
+def obtener_ruta_config():
+    app_data = os.getenv('APPDATA')
+    config_dir = os.path.join(app_data, 'RPA_Migracion')
+    if not os.path.exists(config_dir):
+        os.makedirs(config_dir)
+    return os.path.join(config_dir, 'rutas_config.json')
+
+
+def cargar_configuracion_rutas():
+    ruta_config = obtener_ruta_config()
+    rutas_por_defecto = _rutas_por_defecto()
+    if os.path.exists(ruta_config):
+        try:
+            with open(ruta_config, 'r', encoding='utf-8') as f:
+                return json.load(f)
+        except (json.JSONDecodeError, IOError) as e:
+            print(f"Error cargando configuracion de rutas: {e}. Usando valores por defecto.")
+            return rutas_por_defecto
+    else:
+        guardar_configuracion_rutas(rutas_por_defecto)
+        return rutas_por_defecto
+
+
+def guardar_configuracion_rutas(config):
+    ruta_config = obtener_ruta_config()
+    try:
+        with open(ruta_config, 'w', encoding='utf-8') as f:
+            json.dump(config, f, indent=4, ensure_ascii=False)
+        return True
+    except Exception as e:
+        print(f"Error guardando configuración de rutas: {e}")
+        return False
+
+
+def actualizar_rutas_en_modulos(config):
+    """Actualiza las variables de ruta en los módulos cargados"""
+    try:
+        import importlib
+        modulos_a_recargar = ['Acomulado_Genesys_Cloud', 'Base_Genesys_Cloud', 'Base_Genesys_Engaged', 'Cruce_Genesys_Cloud', 'Genesys_Engaged']
+        for nombre_modulo in modulos_a_recargar:
+            if nombre_modulo in sys.modules:
+                modulo = sys.modules[nombre_modulo]
+                if nombre_modulo in config:
+                    for key, value in config[nombre_modulo].items():
+                        if hasattr(modulo, key):
+                            setattr(modulo, key, value)
+                importlib.reload(modulo)
+        return True
+    except Exception as e:
+        print(f"Error actualizando modulos: {e}")
+        return False

@@ -1,4 +1,3 @@
-#Genesys_Engaged.py
 import os
 import sys
 import logging
@@ -7,14 +6,63 @@ import io
 import glob
 import pandas as pd
 import requests
-
+import json
 
 # Silenciar las advertencias de openpyxl sobre validación de datos
 warnings.filterwarnings('ignore', category=UserWarning, module='openpyxl')
 
-# Configuración del sistema de registros (Logging)
-# La ruta del log se configura dinámicamente en procesar_automatizacion()
-# para usar %APPDATA%/RPA_Migracion/logs/
+
+# =============================================================================
+# FUNCION PARA CARGAR RUTAS DESDE JSON
+# =============================================================================
+
+def obtener_ruta_config():
+    """Obtiene la ruta donde se guarda la configuración en AppData/Roaming"""
+    app_data = os.getenv('APPDATA')
+    config_dir = os.path.join(app_data, 'RPA_Migracion')
+    return os.path.join(config_dir, 'rutas_config.json')
+
+
+def cargar_rutas_modulo():
+    """Carga las rutas del módulo Genesys_Engaged desde el JSON"""
+    ruta_config = obtener_ruta_config()
+    if os.path.exists(ruta_config):
+        try:
+            with open(ruta_config, 'r', encoding='utf-8') as f:
+                config = json.load(f)
+            if 'Genesys_Engaged' in config:
+                return config['Genesys_Engaged']
+        except:
+            pass
+    # Si no existe, usar rutas por defecto
+    return {
+        'OUTPUT_FILENAME': r'C:\Users\User\Grupo de Servicios Integrales Chile S.A\Mildred Casas - VTR Operaciones\02.Migracion\10.Corte Migracion\Formulario Engaged.xlsx',
+        'RUTA_DOTACION': r'C:\Users\User\Grupo de Servicios Integrales Chile S.A\Mildred Casas - VTR Operaciones\02.Migracion\10.Corte Migracion\Dotacion VTR Operaciones.xlsx',
+        'RUTA_LLAMadas': r'C:\Users\User\Grupo de Servicios Integrales Chile S.A\Mildred Casas - VTR Operaciones\02.Migracion\10.Corte Migracion\Llamada x agente.csv',
+        'RUTA_CUARTILES': r'C:\Users\User\Grupo de Servicios Integrales Chile S.A\Mildred Casas - VTR Operaciones\02.Migracion\10.Corte Migracion\Cuartiles.xlsx',
+        'RUTA_MALLA_TURNOS': r'C:\Users\User\Grupo de Servicios Integrales Chile S.A\Mildred Casas - VTR Operaciones\02.Migracion\10.Corte Migracion\Malla de turnos diaria.xlsx',
+        'RUTA_CAMPAIGN': r'C:\Users\User\Grupo de Servicios Integrales Chile S.A\Mildred Casas - VTR Operaciones\02.Migracion\10.Corte Migracion\Campaign Activity.csv',
+        'RUTA_BASES_RSL': r'C:\Users\User\Grupo de Servicios Integrales Chile S.A\Mildred Casas - VTR Operaciones\02.Migracion\10.Corte Migracion\Genesys Engaged Bases'
+    }
+
+
+# Cargar rutas desde JSON
+_RUTAS = cargar_rutas_modulo()
+
+# Asignar variables globales
+OUTPUT_FILENAME = _RUTAS['OUTPUT_FILENAME']
+RUTA_DOTACION = _RUTAS['RUTA_DOTACION']
+RUTA_LLAMadas = _RUTAS['RUTA_LLAMadas']
+RUTA_CUARTILES = _RUTAS['RUTA_CUARTILES']
+RUTA_MALLA_TURNOS = _RUTAS['RUTA_MALLA_TURNOS']
+RUTA_CAMPAIGN = _RUTAS['RUTA_CAMPAIGN']
+RUTA_BASES_RSL = _RUTAS['RUTA_BASES_RSL']
+
+
+# =============================================================================
+# CONFIGURACION DEL SISTEMA DE REGISTROS (LOGGING)
+# =============================================================================
+
 _log_configurado = False
 
 
@@ -48,26 +96,23 @@ def _configurar_logging():
 
     _log_configurado = True
 
+
+# =============================================================================
+# ID DE GOOGLE SHEETS (Fijo, no se modifica desde el JSON)
+# =============================================================================
+
 SPREADSHEET_ID = "1R2BJO1lL1e3CZ5s2_5QT-U8vpeZBRQmRwkJUGu74HEQ"
 GID = "1826436126"
 
-# Rutas seguras usando barras dobles
-OUTPUT_FILENAME = r"C:\\Users\\User\\Grupo de Servicios Integrales Chile S.A\\Mildred Casas - VTR Operaciones\\02.Migracion\\10.Corte Migracion\\Formulario Engaged.xlsx"
-RUTA_DOTACION = r"C:\\Users\\User\\Grupo de Servicios Integrales Chile S.A\\Mildred Casas - VTR Operaciones\\02.Migracion\\10.Corte Migracion\\Dotacion VTR Operaciones.xlsx"
-RUTA_LLAMadas = r"C:\\Users\\User\\Grupo de Servicios Integrales Chile S.A\\Mildred Casas - VTR Operaciones\\02.Migracion\\10.Corte Migracion\\Llamada x agente.csv"
-RUTA_CUARTILES = r"C:\\Users\\User\\Grupo de Servicios Integrales Chile S.A\\Mildred Casas - VTR Operaciones\\02.Migracion\\10.Corte Migracion\\Cuartiles.xlsx"
-RUTA_MALLA_TURNOS = r"C:\\Users\\User\\Grupo de Servicios Integrales Chile S.A\\Mildred Casas - VTR Operaciones\\02.Migracion\\10.Corte Migracion\\Malla de turnos diaria.xlsx"
 
-# NUEVA RUTA PARA CAMPAIGN ACTIVITY
-RUTA_CAMPAIGN = r"C:\\Users\\User\\Grupo de Servicios Integrales Chile S.A\\Mildred Casas - VTR Operaciones\\02.Migracion\\10.Corte Migracion\\Campaign Activity.csv"
-
-# RUTA PARA LEER LOS ARCHIVOS .RSL Y HACER EL CONTEO
-RUTA_BASES_RSL = r"C:\\Users\\User\\Grupo de Servicios Integrales Chile S.A\\Mildred Casas - VTR Operaciones\\02.Migracion\\10.Corte Migracion\\Genesys Engaged Bases"
-
+# =============================================================================
+# FUNCIONES DEL PROCESO
+# =============================================================================
 
 def limpiar_dni(dni_series):
     s = pd.to_numeric(dni_series, errors='coerce').astype('Int64').astype(str)
     return s.replace('<NA>', '')
+
 
 def cargar_fuentes_externas():
     df_dotacion = pd.DataFrame()
@@ -118,7 +163,7 @@ def cargar_fuentes_externas():
                         "Edna Rocio Riano Latorre": "Edna Rocio Riaño Latorre",
                         "Daniela Fernanda Randazzo Briceno": "Daniela Fernanda Randazzo Briceno",
                         "Daniel Felipe Ramos Umana": "Daniel Felipe Ramos Umaña"
-}
+                    }
                     df_llamadas['Nombre'] = df_llamadas['Nombre'].replace(reemplazos)
             except Exception as e:
                 logging.error(f"Error cargando Llamadas: {e}")
