@@ -164,9 +164,9 @@ def aplicar_transformaciones_y_cruces(df_origen, df_dotacion, df_llamadas, df_cu
         df['TIPO CAMPAÑA'] = df['TIPO CAMPAÑA'].astype(str).str.strip().str.upper()
         
         # 2. Aplicamos el filtro
-        campañas_a_excluir = ["PILOTO CLOUD", "MIGRACION NORMAL CLOUD", "HOME PASS"]
+        campañas_a_excluir = ["PILOTO CLOUD", "MIGRACION NORMAL CLOUD", "HOME PASS", "APAGADO NODOS", "BASE CLIENTES COLABORADORES", "BASE MANUAL CLIENTE DESISTE", "PILOTO CTO CLOUD"]
         df = df[~df['TIPO CAMPAÑA'].isin(campañas_a_excluir)]
-        logging.info("Filtro aplicado de forma segura: Se excluyeron las campañas PILOTO CLOUD y MIGRACION NORMAL CLOUD.")
+        logging.info("Filtro aplicado de forma segura: Se excluyeron las campañas")
     else:
         logging.warning("No se encontró la columna 'TIPO DE CAMPAÑA' en el formulario original.")
 
