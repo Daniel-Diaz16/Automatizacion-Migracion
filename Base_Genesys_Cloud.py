@@ -1,29 +1,38 @@
-#Base_Genesys_Cloud.py
 import pandas as pd
 import glob
 import os
 from datetime import datetime, timedelta
 
-
+# 1. Configuración de fechas dinámicas
 hoy = datetime.now()
 mes_pasado_fecha = hoy.replace(day=1) - timedelta(days=6)
+
 meses_espanol = {
     1: 'Enero', 2: 'Febrero', 3: 'Marzo', 4: 'Abril',
     5: 'Mayo', 6: 'Junio', 7: 'Julio', 8: 'Agosto',
     9: 'Septiembre', 10: 'Octubre', 11: 'Noviembre', 12: 'Diciembre'
 }
 
+# --- MES ACTUAL (Histórico) ---
+anio_actual = hoy.strftime('%Y')
+num_mes_actual = hoy.strftime('%m')
+nombre_mes_actual = meses_espanol[hoy.month]
+carpeta_mes_actual = f"{num_mes_actual}. {nombre_mes_actual}"
+
+# --- MES PASADO (Histórico) ---
 anio_pasado = mes_pasado_fecha.strftime('%Y')
-num_mes = mes_pasado_fecha.strftime('%m')
-nombre_mes = meses_espanol[mes_pasado_fecha.month]
-carpeta_mes_pasado = f"{num_mes}. {nombre_mes}"
+num_mes_pasado = mes_pasado_fecha.strftime('%m')
+nombre_mes_pasado = meses_espanol[mes_pasado_fecha.month]
+carpeta_mes_pasado = f"{num_mes_pasado}. {nombre_mes_pasado}"
 
 
+# 2. Definición de Rutas
 ruta_base = r'C:\Users\User\Grupo de Servicios Integrales Chile S.A\Mildred Casas - VTR Operaciones\02.Migracion\09. Bases Genesys\01. Contact_List'
 ruta_salida = r'C:\Users\User\Grupo de Servicios Integrales Chile S.A\Mildred Casas - VTR Operaciones\02.Migracion\10.Corte Migracion\Base_Genesys_Cloud.xlsx'
-ruta_cargue_actual = os.path.join(ruta_base, 'Cargue Actual')
-ruta_historico_mes_pasado = os.path.join(
-ruta_base, 'Historico', anio_pasado, carpeta_mes_pasado)
+
+# Nuevas rutas fijadas en la carpeta Histórico
+ruta_historico_mes_actual = os.path.join(ruta_base, 'Historico', anio_actual, carpeta_mes_actual)
+ruta_historico_mes_pasado = os.path.join(ruta_base, 'Historico', anio_pasado, carpeta_mes_pasado)
 ruta_bases_cloud = r'C:\Users\User\Grupo de Servicios Integrales Chile S.A\Mildred Casas - VTR Operaciones\02.Migracion\10.Corte Migracion\Genesys Cloud Bases'
 
 columnas_expandidas = [
@@ -35,22 +44,23 @@ columnas_expandidas = [
     'Segment_of_Origin'
 ]
 
-print("Buscando archivos en todas las rutas...")
-print(f" -> Actual: {ruta_cargue_actual}")
-print(f" -> Histórico: {ruta_historico_mes_pasado}")
+print("Buscando archivos en todas las rutas requeridas...")
+print(f" -> Histórico Mes Actual: {ruta_historico_mes_actual}")
+print(f" -> Histórico Mes Pasado: {ruta_historico_mes_pasado}")
 print(f" -> Cloud Bases: {ruta_bases_cloud}")
 
-archivos_actual = glob.glob(os.path.join(ruta_cargue_actual, "*.csv"))
-archivos_historico = glob.glob(
-    os.path.join(ruta_historico_mes_pasado, "*.csv"))
+# 3. Lectura de archivos CSV por carpetas
+archivos_mes_actual = glob.glob(os.path.join(ruta_historico_mes_actual, "*.csv"))
+archivos_mes_pasado = glob.glob(os.path.join(ruta_historico_mes_pasado, "*.csv"))
 archivos_cloud = glob.glob(os.path.join(ruta_bases_cloud, "*.csv"))
-archivos_csv = archivos_actual + archivos_historico + archivos_cloud
+
+# Consolidamos las tres listas de archivos
+archivos_csv = archivos_mes_actual + archivos_mes_pasado + archivos_cloud
 
 if not archivos_csv:
-    print("\n❌ No se encontraron archivos CSV en ninguna de las rutas.")
+    print("\n No se encontraron archivos CSV en ninguna de las rutas especificadas.")
 else:
-    print(
-        f"\n✅ Se encontraron {len(archivos_csv)} archivos en total. Iniciando consolidación...")
+    print(f"\n Se encontraron {len(archivos_csv)} archivos en total. Iniciando consolidación...")
     lista_tablas = []
 
     for archivo in archivos_csv:
@@ -74,8 +84,7 @@ else:
                 col for col in columnas_expandidas if col in datos.columns]
 
             if not cols_presentes:
-                print(
-                    f"  -> Advertencia: Sin columnas requeridas en {os.path.basename(archivo)}")
+                print(f"  -> Advertencia: Sin columnas requeridas en {os.path.basename(archivo)}")
                 continue
 
             datos = datos[cols_presentes].copy()
@@ -95,15 +104,15 @@ else:
                         x).strip()[-9:] if pd.notna(x) and str(x).strip() != "" else None)
 
             lista_tablas.append(datos)
-            print(f"✔️ Cargado: {os.path.basename(archivo)}")
+            print(f"Cargado: {os.path.basename(archivo)}")
 
         except Exception as e:
-            print(f"❌ Error en {os.path.basename(archivo)}: {e}")
+            print(f"Error en {os.path.basename(archivo)}: {e}")
 
     if lista_tablas:
         df_final = pd.concat(lista_tablas, ignore_index=True)
 
-        print("Limpiando caracteres especiales (Mojibake)...")
+        print("Limpiando caracteres especiales...")
         diccionario_caracteres = {
             'Ã¡': 'á', 'Ã©': 'é', 'Ã\xad': 'í', 'Ã³': 'ó', 'Ãº': 'ú',
             'Ã±': 'ñ', 'Ã‘': 'Ñ', 'Â°': '°', 'Â': ''

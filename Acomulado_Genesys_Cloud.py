@@ -1,12 +1,35 @@
-#Acomulado_Genesys_Cloud.py
 import pandas as pd
 import glob
 import os
 import warnings
-
+from datetime import datetime, timedelta
 
 # Silenciar advertencias de excel
 warnings.filterwarnings('ignore', category=UserWarning, module='openpyxl')
+
+# ==========================================
+# 0. CONFIGURACIÓN DINÁMICA DE FECHAS Y RUTAS
+# ==========================================
+hoy = datetime.now()
+mes_pasado_fecha = hoy.replace(day=1) - timedelta(days=6)
+
+meses_espanol = {
+    1: 'Enero', 2: 'Febrero', 3: 'Marzo', 4: 'Abril',
+    5: 'Mayo', 6: 'Junio', 7: 'Julio', 8: 'Agosto',
+    9: 'Septiembre', 10: 'Octubre', 11: 'Noviembre', 12: 'Diciembre'
+}
+
+# --- MES ACTUAL (Histórico) ---
+anio_actual = hoy.strftime('%Y')
+num_mes_actual = hoy.strftime('%m')
+nombre_mes_actual = meses_espanol[hoy.month]
+carpeta_mes_actual = f"{num_mes_actual}. {nombre_mes_actual}"
+
+# --- MES PASADO (Histórico) ---
+anio_pasado = mes_pasado_fecha.strftime('%Y')
+num_mes_pasado = mes_pasado_fecha.strftime('%m')
+nombre_mes_pasado = meses_espanol[mes_pasado_fecha.month]
+carpeta_mes_pasado = f"{num_mes_pasado}. {nombre_mes_pasado}"
 
 # ==========================================
 # 1. FUNCIONES DE EXTRACCIÓN Y LIMPIEZA
@@ -39,7 +62,13 @@ def crear_agente_inicial(texto):
 # 2. RUTAS Y DICCIONARIOS
 # ==========================================
 
-ruta_carpeta = r'C:\Users\User\Grupo de Servicios Integrales Chile S.A\Mildred Casas - VTR Operaciones\02.Migracion\09. Bases Genesys\02. Interacciones\Historico\2026' 
+# Ruta base del Histórico (sin el año final para hacerlo dinámico)
+ruta_base_historico = r'C:\Users\User\Grupo de Servicios Integrales Chile S.A\Mildred Casas - VTR Operaciones\02.Migracion\09. Bases Genesys\02. Interacciones\Historico'
+
+# Creación de rutas específicas para este mes y el mes pasado
+ruta_mes_actual = os.path.join(ruta_base_historico, anio_actual, carpeta_mes_actual)
+ruta_mes_pasado = os.path.join(ruta_base_historico, anio_pasado, carpeta_mes_pasado)
+
 ruta_salida = r'C:\Users\User\Grupo de Servicios Integrales Chile S.A\Mildred Casas - VTR Operaciones\02.Migracion\10.Corte Migracion\Acomulado.csv'
 ruta_dotacion = r'C:\Users\User\Grupo de Servicios Integrales Chile S.A\Mildred Casas - VTR Operaciones\02.Migracion\10.Corte Migracion\Dotacion VTR Operaciones.xlsx'
 
@@ -122,12 +151,18 @@ columnas_expandidas = [
 # 3. LECTURA Y UNIÓN DE ARCHIVOS
 # ==========================================
 
-archivos_csv = glob.glob(os.path.join(ruta_carpeta, "**", "*.csv"), recursive=True)
+print("Buscando archivos en carpetas específicas...")
+print(f" -> Histórico Mes Actual: {ruta_mes_actual}")
+print(f" -> Histórico Mes Pasado: {ruta_mes_pasado}")
+
+archivos_mes_actual = glob.glob(os.path.join(ruta_mes_actual, "*.csv"))
+archivos_mes_pasado = glob.glob(os.path.join(ruta_mes_pasado, "*.csv"))
+archivos_csv = archivos_mes_actual + archivos_mes_pasado
 
 if not archivos_csv:
-    print("No se encontraron archivos CSV en la ruta especificada. Revisa la ruta o las subcarpetas.")
+    print("\n❌ No se encontraron archivos CSV en las rutas especificadas.")
 else:
-    print(f"Se encontraron {len(archivos_csv)} archivos. Iniciando unión...")
+    print(f"\n✅ Se encontraron {len(archivos_csv)} archivos. Iniciando unión...")
 
     lista_tablas = []
 
@@ -140,7 +175,7 @@ else:
             datos = datos[cols_presentes]
             datos['Origen_Archivo'] = os.path.basename(archivo)
             lista_tablas.append(datos)
-            print(f"Cargado: {os.path.basename(archivo)}")
+            print(f"✔️ Cargado: {os.path.basename(archivo)}")
 
         except Exception as e:
             try:
@@ -151,9 +186,9 @@ else:
                 datos = datos[cols_presentes]
                 datos['Origen_Archivo'] = os.path.basename(archivo)
                 lista_tablas.append(datos)
-                print(f"Cargado (con latin1): {os.path.basename(archivo)}")
+                print(f"✔️ Cargado (con latin1): {os.path.basename(archivo)}")
             except Exception as e2:
-                print(f"Error crítico al leer {archivo}: {e2}")
+                print(f"❌ Error crítico al leer {archivo}: {e2}")
 
     # ==========================================
     # 4. LIMPIEZA MAESTRA DE DATOS
@@ -232,7 +267,7 @@ else:
             fecha_limite_superior = inicio_siguiente_mes - pd.Timedelta(days=1)
             
             print("\n" + "-"*40)
-            print("Aplicando Filtro Estricto de Fechas:")
+            print("Aplicando Filtro Estricto de Fechas en los datos:")
             print(f"-> Desde: {fecha_limite_inferior.strftime('%d/%m/%Y')}")
             print(f"-> Hasta: {fecha_limite_superior.strftime('%d/%m/%Y')} (Fin de este mes)")
             print("-"  *40)
@@ -274,3 +309,5 @@ else:
         print("\n" + "="*30)
         print(f"¡Hecho! Archivo creado con {len(base_final)} filas.")
         print(f"Ubicación: {ruta_salida}")
+    else:
+        print("\nError: No se procesó ninguna información.")

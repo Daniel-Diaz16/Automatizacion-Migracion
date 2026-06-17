@@ -1,4 +1,3 @@
-#Cruce_Genesys_Cloud.py
 import pandas as pd
 import glob
 import os
@@ -112,11 +111,12 @@ correccion_columnas = {
     "DirecciÃ³n": "Dirección",
     "ConclusiÃ³n": "Conclusión",
     "Tipo de desconexiÃ³n": "Tipo de desconexión",
-    "IdentificaciÃ³n de contacto": "Identificación de contacto"
+    "IdentificaciÃ³n de contacto": "Identificación de contacto",
+    "Nombre de campaÃ±a": "Nombre de campaña"
 }
 
 columnas_expandidas = [
-    "Usuarios", "Fecha", "Dirección", "DNIS", "Cola", "Conclusión", "Identificación de contacto"
+    "Usuarios", "Fecha", "Dirección", "DNIS", "Cola", "Conclusión", "Identificación de contacto","Nombre de campaña"
 ]
 
 # =============================================================================
@@ -257,13 +257,16 @@ else:
                 base_final['Tipificacion'] == "WRAP-UP-TIMEOUT").astype(int)
 
         if "Cola" in base_final.columns:
+
             diccionario_colas = {
+
                 "COLA_OPERACIONES_MIGRACION_IBR_COLOMBIA_Q001": "Genesys Cloud",
                 "COLA_OPERACIONES_CONFIRMACION_IBR_COLOMBIA_Q001": "HomePass",
                 "COLA_OPERACIONES_MIGRACION_IBR_COLOMBIA_Q002": "Santiago Centro",
-                "COLA_OPERACIONES_MIGRACION_IBR_COLOMBIA_Q003": "Base Infactible"
+                "COLA_OPERACIONES_MIGRACION_IBR_COLOMBIA_Q003": "Base Claro"
             }
             base_final['Base Cloud'] = base_final['Cola'].map(
+
                 diccionario_colas).fillna("-")
 # =========================================================================
 # --- PASO 5: CRUCES CON OTRAS BASES ---
@@ -407,7 +410,7 @@ except Exception as e:
 # --- PASO 9: EXPORTACIÓN FINAL CON CONTEO Y ACUMULADO MAESTRO ---
 # =========================================================================
 columnas_finales = [
-    "Fecha.", "Hora", "Cola", "Usuarios", "Fono", "Tipificacion", "Identificación de contacto",
+    "Fecha.", "Hora", "Cola","Nombre de campaña", "Usuarios", "Fono", "Tipificacion", "Identificación de contacto",
     "Origen_Archivo", "Tipo de llamada", "Gestión", "No aplica", "Migracion", "Contacto.",
     "Errores", "Sin tipificar", "Base Cloud", "Bucket", "ANDES","DNI", "SUPERVISOR",
     "Antiguedad", "Cuartil", "Turno"
@@ -420,7 +423,7 @@ ruta_salida_excel = ruta_salida.replace('.csv', '.xlsx')
 print(f"\nBuscando archivos para conteo en: {os.path.basename(ruta_genesys_bases)}...")
 total_genesys_cloud = 0
 total_homepass = 0
-total_genesys_santiago_centro = 0
+total_genesys_base_claro = 0
 fecha_hoy = pd.Timestamp.today().strftime('%d/%m/%Y')
 columna_fecha = 'Fecha_Base'
 
@@ -449,26 +452,27 @@ try:
                     total_homepass += conteo_actual
                 elif "BASE GENESYS COLA001" in nombre_archivo:
                     total_genesys_cloud += conteo_actual
-                elif "COLA002" in nombre_archivo: 
-                    total_genesys_santiago_centro += conteo_actual
+                elif "COLA003" in nombre_archivo: 
+                    total_genesys_base_claro += conteo_actual
                     
             except Exception as e:
                 print(f"  -> Error leyendo el archivo {nombre_archivo}: {e}")
 
                 
-    print(f"  -> Conteo finalizado. Genesys Cloud: {total_genesys_cloud} | HomePass: {total_homepass} | Santiago Centro: {total_genesys_santiago_centro}")
+    print(f"  -> Conteo finalizado. Genesys Cloud: {total_genesys_cloud} | HomePass: {total_homepass} | Base Claro: {total_genesys_base_claro}")
 
 except Exception as e_conteo:
     print(f"Advertencia: Hubo un problema general en el conteo de bases. Error: {e_conteo}")
     total_genesys_cloud = 0
     total_homepass = 0
-    total_genesys_santiago_centro = 0
+    total_genesys_base_claro = 0
 
 # 3. Crear el DataFrame con los resultados
 df_conteo = pd.DataFrame({
     "Genesys Cloud": [total_genesys_cloud],
     "HomePass": [total_homepass],
-    "Santiago Centro": [total_genesys_santiago_centro]
+    "Base Claro": [total_genesys_base_claro]
+
 })
 # =========================================================================
 # 3. GUARDAR EL ARCHIVO EXCEL CON LAS 3 HOJAS MASTER
@@ -492,7 +496,7 @@ try:
     print("\n" + "="*40)
     print("¡Proceso Terminado Exitosamente!")
     print(f"Archivo Excel Maestro: {ruta_salida_excel}")
-    print(f"Registros hoy en Genesys Cloud: {total_genesys_cloud} | Registros en HomePass: {total_homepass} | Registros Santiago Centro: {total_genesys_santiago_centro}")
+    print(f"Registros hoy en Genesys Cloud: {total_genesys_cloud} | Registros en HomePass: {total_homepass} | Registros Base Claro: {total_genesys_base_claro}")
     print("="*40)
 
 except Exception as e_excel:

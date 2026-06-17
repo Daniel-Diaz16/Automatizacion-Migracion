@@ -59,7 +59,7 @@ class ProgramadorHorario:
         
         # Horarios para cruces y engaged (de 08:10 a 18:10 cada hora)
         horarios_cruce = [
-            "08:10", "09:10", "10:10", "11:10", "12:10",
+            "08:10", "09:10", "10:00", "11:10", "12:10",
             "13:10", "14:10", "15:10", "16:10", "17:10", "18:10"
         ]
         

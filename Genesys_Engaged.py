@@ -1,4 +1,3 @@
-#Genesys_Engaged.py
 import os
 import sys
 import logging
@@ -9,10 +8,10 @@ import pandas as pd
 import requests
 
 
-# Silenciar las advertencias de openpyxl sobre validación de datos
+
 warnings.filterwarnings('ignore', category=UserWarning, module='openpyxl')
 
-# Configuración del sistema de registros (Logging)
+
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - [%(levelname)s] - %(message)s',
@@ -25,17 +24,12 @@ logging.basicConfig(
 SPREADSHEET_ID = "1R2BJO1lL1e3CZ5s2_5QT-U8vpeZBRQmRwkJUGu74HEQ"
 GID = "1826436126"
 
-# Rutas seguras usando barras dobles
 OUTPUT_FILENAME = r"C:\\Users\\User\\Grupo de Servicios Integrales Chile S.A\\Mildred Casas - VTR Operaciones\\02.Migracion\\10.Corte Migracion\\Formulario Engaged.xlsx"
 RUTA_DOTACION = r"C:\\Users\\User\\Grupo de Servicios Integrales Chile S.A\\Mildred Casas - VTR Operaciones\\02.Migracion\\10.Corte Migracion\\Dotacion VTR Operaciones.xlsx"
 RUTA_LLAMadas = r"C:\\Users\\User\\Grupo de Servicios Integrales Chile S.A\\Mildred Casas - VTR Operaciones\\02.Migracion\\10.Corte Migracion\\Llamada x agente.csv"
 RUTA_CUARTILES = r"C:\\Users\\User\\Grupo de Servicios Integrales Chile S.A\\Mildred Casas - VTR Operaciones\\02.Migracion\\10.Corte Migracion\\Cuartiles.xlsx"
 RUTA_MALLA_TURNOS = r"C:\\Users\\User\\Grupo de Servicios Integrales Chile S.A\\Mildred Casas - VTR Operaciones\\02.Migracion\\10.Corte Migracion\\Malla de turnos diaria.xlsx"
-
-# NUEVA RUTA PARA CAMPAIGN ACTIVITY
 RUTA_CAMPAIGN = r"C:\\Users\\User\\Grupo de Servicios Integrales Chile S.A\\Mildred Casas - VTR Operaciones\\02.Migracion\\10.Corte Migracion\\Campaign Activity.csv"
-
-# RUTA PARA LEER LOS ARCHIVOS .RSL Y HACER EL CONTEO
 RUTA_BASES_RSL = r"C:\\Users\\User\\Grupo de Servicios Integrales Chile S.A\\Mildred Casas - VTR Operaciones\\02.Migracion\\10.Corte Migracion\\Genesys Engaged Bases"
 
 
@@ -174,7 +168,7 @@ def aplicar_transformaciones_y_cruces(df_origen, df_dotacion, df_llamadas, df_cu
         df = df[~df['TIPO CAMPAÑA'].isin(campañas_a_excluir)]
         logging.info("Filtro aplicado de forma segura: Se excluyeron las campañas PILOTO CLOUD y MIGRACION NORMAL CLOUD.")
     else:
-        logging.warning("⚠️ No se encontró la columna 'TIPO DE CAMPAÑA' en el formulario original.")
+        logging.warning("No se encontró la columna 'TIPO DE CAMPAÑA' en el formulario original.")
 
     if 'Marca temporal' in df.columns:
         dt_temporal = pd.to_datetime(df['Marca temporal'], errors='coerce')
@@ -217,11 +211,11 @@ def aplicar_transformaciones_y_cruces(df_origen, df_dotacion, df_llamadas, df_cu
     if 'DNI' in df.columns and not df_cuartiles.empty:
         df = pd.merge(df, df_cuartiles, how='left', on='DNI')
     if df_malla_turnos.empty:
-        logging.warning("⚠️ No se cruzaron los Turnos: El archivo 'Malla de Turnos' está vacío o no se cargó.")
+        logging.warning("No se cruzaron los Turnos: El archivo 'Malla de Turnos' está vacío o no se cargó.")
     elif 'DNI' not in df.columns:
-        logging.warning("⚠️ No se cruzaron los Turnos: El archivo principal no tiene la columna 'DNI' (Revisa el archivo de Dotación).")
+        logging.warning("No se cruzaron los Turnos: El archivo principal no tiene la columna 'DNI' (Revisa el archivo de Dotación).")
     elif 'Turno' not in df_malla_turnos.columns:
-        logging.warning("⚠️ No se cruzaron los Turnos: La malla cargó, pero no existe la columna llamada exactamente 'Turno'.")
+        logging.warning("No se cruzaron los Turnos: La malla cargó, pero no existe la columna llamada exactamente 'Turno'.")
     else:
         df = pd.merge(df, df_malla_turnos, how='left', on='DNI')
         logging.info("✅ Cruce de Malla de Turnos realizado con éxito.")
@@ -284,17 +278,15 @@ def procesar_automatizacion():
             if not os.path.exists(carpeta_destino):
                 os.makedirs(carpeta_destino)
 
-            # --- ESCRIBIR MÚLTIPLES HOJAS EN EL EXCEL ---
+
             with pd.ExcelWriter(OUTPUT_FILENAME, engine='openpyxl') as writer:
-                # 1. Hoja principal
                 df_final.to_excel(writer, sheet_name='Formulario Engaged', index=False)
                 
-                # 2. Hoja de Campaign
+
                 if not df_campaign.empty:
                     df_campaign.to_excel(writer, sheet_name='Campaign Activity', index=False)
                     
-                # 3. Hoja nueva de Conteo .RSL
-                # Usamos un nombre de 27 caracteres para evitar el límite de Excel (máximo 31)
+
                 df_conteo.to_excel(writer, sheet_name='Conteo Engaged', index=False)
                     
             logging.info(f"¡Reporte guardado exitosamente en: {OUTPUT_FILENAME} con sus hojas correspondientes!")
