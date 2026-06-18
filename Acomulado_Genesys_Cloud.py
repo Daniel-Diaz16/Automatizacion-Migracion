@@ -4,9 +4,35 @@ import os
 import warnings
 import json
 import sys
+from datetime import datetime, timedelta
 
 # Silenciar advertencias de excel
 warnings.filterwarnings('ignore', category=UserWarning, module='openpyxl')
+
+
+# =============================================================================
+# CONFIGURACIÓN DINÁMICA DE FECHAS
+# =============================================================================
+hoy = datetime.now()
+mes_pasado_fecha = hoy.replace(day=1) - timedelta(days=6)
+
+meses_espanol = {
+    1: 'Enero', 2: 'Febrero', 3: 'Marzo', 4: 'Abril',
+    5: 'Mayo', 6: 'Junio', 7: 'Julio', 8: 'Agosto',
+    9: 'Septiembre', 10: 'Octubre', 11: 'Noviembre', 12: 'Diciembre'
+}
+
+# --- MES ACTUAL (Histórico) ---
+anio_actual = hoy.strftime('%Y')
+num_mes_actual = hoy.strftime('%m')
+nombre_mes_actual = meses_espanol[hoy.month]
+carpeta_mes_actual = f"{num_mes_actual}. {nombre_mes_actual}"
+
+# --- MES PASADO (Histórico) ---
+anio_pasado = mes_pasado_fecha.strftime('%Y')
+num_mes_pasado = mes_pasado_fecha.strftime('%m')
+nombre_mes_pasado = meses_espanol[mes_pasado_fecha.month]
+carpeta_mes_pasado = f"{num_mes_pasado}. {nombre_mes_pasado}"
 
 
 # =============================================================================
@@ -33,7 +59,7 @@ def cargar_rutas_modulo():
             pass
     # Si no existe, usar rutas por defecto
     return {
-        'ruta_carpeta': r'C:\Users\User\Grupo de Servicios Integrales Chile S.A\Mildred Casas - VTR Operaciones\02.Migracion\09. Bases Genesys\02. Interacciones\Historico\2026',
+        'ruta_carpeta': r'C:\Users\User\Grupo de Servicios Integrales Chile S.A\Mildred Casas - VTR Operaciones\02.Migracion\09. Bases Genesys\02. Interacciones\Historico',
         'ruta_salida': r'C:\Users\User\Grupo de Servicios Integrales Chile S.A\Mildred Casas - VTR Operaciones\02.Migracion\10.Corte Migracion\Acomulado.csv',
         'ruta_dotacion': r'C:\Users\User\Grupo de Servicios Integrales Chile S.A\Mildred Casas - VTR Operaciones\02.Migracion\10.Corte Migracion\Dotacion VTR Operaciones.xlsx'
     }
@@ -46,6 +72,10 @@ _RUTAS = cargar_rutas_modulo()
 ruta_carpeta = _RUTAS['ruta_carpeta']
 ruta_salida = _RUTAS['ruta_salida']
 ruta_dotacion = _RUTAS['ruta_dotacion']
+
+# Creación de rutas específicas para este mes y el mes pasado
+ruta_mes_actual = os.path.join(ruta_carpeta, anio_actual, carpeta_mes_actual)
+ruta_mes_pasado = os.path.join(ruta_carpeta, anio_pasado, carpeta_mes_pasado)
 
 
 # =============================================================================
@@ -164,13 +194,19 @@ columnas_expandidas = [
 def main():
     """Funcion principal que ejecuta todo el proceso de Acumulado Genesys Cloud"""
 
-    archivos_csv = glob.glob(os.path.join(ruta_carpeta, "**", "*.csv"), recursive=True)
+    print("Buscando archivos en carpetas específicas...")
+    print(f" -> Histórico Mes Actual: {ruta_mes_actual}")
+    print(f" -> Histórico Mes Pasado: {ruta_mes_pasado}")
+
+    archivos_mes_actual = glob.glob(os.path.join(ruta_mes_actual, "*.csv"))
+    archivos_mes_pasado = glob.glob(os.path.join(ruta_mes_pasado, "*.csv"))
+    archivos_csv = archivos_mes_actual + archivos_mes_pasado
 
     if not archivos_csv:
-        print("No se encontraron archivos CSV en la ruta especificada. Revisa la ruta o las subcarpetas.")
+        print("\nNo se encontraron archivos CSV en las rutas especificadas.")
         return
 
-    print(f"Se encontraron {len(archivos_csv)} archivos. Iniciando unión...")
+    print(f"\nSe encontraron {len(archivos_csv)} archivos. Iniciando unión...")
 
     lista_tablas = []
 

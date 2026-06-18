@@ -239,9 +239,18 @@ def aplicar_transformaciones_y_cruces(df_origen, df_dotacion, df_llamadas, df_cu
     if 'TIPO CAMPAÑA' in df.columns:
         df['TIPO CAMPAÑA'] = df['TIPO CAMPAÑA'].astype(str).str.strip().str.upper()
         
-        campañas_a_excluir = ["PILOTO CLOUD", "MIGRACION NORMAL CLOUD", "HOME PASS"]
+        # CAMPAIGNAS EXCLUIDAS (actualizadas con las del segundo código)
+        campañas_a_excluir = [
+            "PILOTO CLOUD", 
+            "MIGRACION NORMAL CLOUD", 
+            "HOME PASS", 
+            "APAGADO NODOS", 
+            "BASE CLIENTES COLABORADORES", 
+            "BASE MANUAL CLIENTE DESISTE", 
+            "PILOTO CTO CLOUD"
+        ]
         df = df[~df['TIPO CAMPAÑA'].isin(campañas_a_excluir)]
-        logging.info("Filtro aplicado de forma segura: Se excluyeron las campañas PILOTO CLOUD y MIGRACION NORMAL CLOUD.")
+        logging.info("Filtro aplicado: Se excluyeron las campañas no deseadas.")
     else:
         logging.warning("No se encontró la columna 'TIPO DE CAMPAÑA' en el formulario original.")
 
@@ -277,14 +286,17 @@ def aplicar_transformaciones_y_cruces(df_origen, df_dotacion, df_llamadas, df_cu
             df['Antiguedad'] = dias.apply(calc_ant)
             df['FECHA INGRESO'] = fecha_dt.dt.strftime('%d/%m/%Y')
     else:
-        for c in ['Genesys Engaged', 'SUPERVISOR', 'NOMBRE COMPLETO', 'FECHA INGRESO', 'DNI','SEDE']: df[c] = "Error"
+        for c in ['Genesys Engaged', 'SUPERVISOR', 'NOMBRE COMPLETO', 'FECHA INGRESO', 'DNI','SEDE']: 
+            df[c] = "Error"
 
     if 'NOMBRE COMPLETO' in df.columns and not df_llamadas.empty:
         df = pd.merge(df, df_llamadas, left_on='NOMBRE COMPLETO', right_on='Nombre', how='left')
-        if 'Nombre' in df.columns: df.drop(columns=['Nombre'], inplace=True)
+        if 'Nombre' in df.columns: 
+            df.drop(columns=['Nombre'], inplace=True)
 
     if 'DNI' in df.columns and not df_cuartiles.empty:
         df = pd.merge(df, df_cuartiles, how='left', on='DNI')
+    
     if df_malla_turnos.empty:
         logging.warning("No se cruzaron los Turnos: El archivo 'Malla de Turnos' está vacío o no se cargó.")
     elif 'DNI' not in df.columns:

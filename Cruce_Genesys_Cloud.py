@@ -154,11 +154,12 @@ correccion_columnas = {
     "DirecciÃ³n": "Dirección",
     "ConclusiÃ³n": "Conclusión",
     "Tipo de desconexiÃ³n": "Tipo de desconexión",
-    "IdentificaciÃ³n de contacto": "Identificación de contacto"
+    "IdentificaciÃ³n de contacto": "Identificación de contacto",
+    "Nombre de campaÃ±a": "Nombre de campaña"  # <--- NUEVO
 }
 
 columnas_expandidas = [
-    "Usuarios", "Fecha", "Dirección", "DNIS", "Cola", "Conclusión", "Identificación de contacto"
+    "Usuarios", "Fecha", "Dirección", "DNIS", "Cola", "Conclusión", "Identificación de contacto", "Nombre de campaña"  # <--- NUEVO
 ]
 
 
@@ -304,7 +305,8 @@ def main():
             "COLA_OPERACIONES_MIGRACION_IBR_COLOMBIA_Q001": "Genesys Cloud",
             "COLA_OPERACIONES_CONFIRMACION_IBR_COLOMBIA_Q001": "HomePass",
             "COLA_OPERACIONES_MIGRACION_IBR_COLOMBIA_Q002": "Santiago Centro",
-            "COLA_OPERACIONES_MIGRACION_IBR_COLOMBIA_Q003": "Base Infactible"
+            "COLA_OPERACIONES_MIGRACION_IBR_COLOMBIA_Q003": "Base Claro",  # <--- CAMBIADO
+            "COLA_OPERACIONES_MIGRACION_IBR_COLOMBIA_Q004": "CTO"  # <--- NUEVO
         }
         base_final['Base Cloud'] = base_final['Cola'].map(
             diccionario_colas).fillna("-")
@@ -357,12 +359,14 @@ def main():
         if 'NOMBRE COMPLETO' in df_dotacion.columns:
             df_dotacion['NOMBRE COMPLETO'] = df_dotacion['NOMBRE COMPLETO'].astype(
                 str).str.replace(r'\s+', ' ', regex=True).str.strip().str.title()
-            dotacion_limpia = df_dotacion[['NOMBRE COMPLETO', 'ANDES', 'SUPERVISOR', 'FECHA INGRESO', 'DNI']].dropna(
+            dotacion_limpia = df_dotacion[['NOMBRE COMPLETO', 'ANDES', 'SUPERVISOR', 'FECHA INGRESO', 'DNI', 'SEDE']].dropna(  # <--- NUEVO
                 subset=['NOMBRE COMPLETO']).drop_duplicates(subset=['NOMBRE COMPLETO'])
             base_final = pd.merge(
                 base_final, dotacion_limpia, how='left',
                 left_on='Usuarios', right_on='NOMBRE COMPLETO'
             )
+            # --- RELLENAR VACÍOS DE SEDE ---
+            base_final['SEDE'] = base_final['SEDE'].fillna('Colombia')  # <--- NUEVO
         else:
             print("¡Atención! Aún no se encuentra la columna NOMBRE COMPLETO.")
     except Exception as e:
@@ -450,10 +454,10 @@ def main():
     # PASO 9: EXPORTACIÓN FINAL CON CONTEO Y ACUMULADO MAESTRO
     # =========================================================================
     columnas_finales = [
-        "Fecha.", "Hora", "Cola", "Usuarios", "Fono", "Tipificacion", "Identificación de contacto",
+        "Fecha.", "Hora", "Cola", "Nombre de campaña", "Usuarios", "Fono", "Tipificacion", "Identificación de contacto",  # <--- NUEVO
         "Origen_Archivo", "Tipo de llamada", "Gestión", "No aplica", "Migracion", "Contacto.",
         "Errores", "Sin tipificar", "Base Cloud", "Bucket", "ANDES", "DNI", "SUPERVISOR",
-        "Antiguedad", "Cuartil", "Turno"
+        "Antiguedad", "Cuartil", "Turno", "SEDE"  # <--- NUEVO
     ]
 
     cols_presentes = [col for col in columnas_finales if col in base_final.columns]
@@ -464,7 +468,8 @@ def main():
     print(f"\nBuscando archivos para conteo en: {os.path.basename(ruta_genesys_bases)}...")
     total_genesys_cloud = 0
     total_homepass = 0
-    total_genesys_santiago_centro = 0
+    total_genesys_base_claro = 0  # <--- NUEVO
+    total_genesys_cto = 0  # <--- NUEVO
     fecha_hoy = pd.Timestamp.today().strftime('%d/%m/%Y')
     columna_fecha = 'Fecha_Base'
 
@@ -491,24 +496,28 @@ def main():
                         total_homepass += conteo_actual
                     elif "BASE GENESYS COLA001" in nombre_archivo:
                         total_genesys_cloud += conteo_actual
-                    elif "COLA002" in nombre_archivo:
-                        total_genesys_santiago_centro += conteo_actual
+                    elif "COLA003" in nombre_archivo:  # <--- NUEVO
+                        total_genesys_base_claro += conteo_actual
+                    elif "COLA004" in nombre_archivo:  # <--- NUEVO
+                        total_genesys_cto += conteo_actual
 
                 except Exception as e:
                     print(f"  -> Error leyendo el archivo {nombre_archivo}: {e}")
 
-        print(f"  -> Conteo finalizado. Genesys Cloud: {total_genesys_cloud} | HomePass: {total_homepass} | Santiago Centro: {total_genesys_santiago_centro}")
+        print(f"  -> Conteo finalizado. Genesys Cloud: {total_genesys_cloud} | HomePass: {total_homepass} | Base Claro: {total_genesys_base_claro} | CTO: {total_genesys_cto}")
 
     except Exception as e_conteo:
         print(f"Advertencia: Hubo un problema general en el conteo de bases. Error: {e_conteo}")
         total_genesys_cloud = 0
         total_homepass = 0
-        total_genesys_santiago_centro = 0
+        total_genesys_base_claro = 0
+        total_genesys_cto = 0
 
     df_conteo = pd.DataFrame({
         "Genesys Cloud": [total_genesys_cloud],
         "HomePass": [total_homepass],
-        "Santiago Centro": [total_genesys_santiago_centro]
+        "Base Claro": [total_genesys_base_claro],  # <--- NUEVO
+        "CTO": [total_genesys_cto]  # <--- NUEVO
     })
 
     # --- Guardar archivo Excel ---
@@ -528,7 +537,7 @@ def main():
         print("\n" + "="*40)
         print("¡Proceso Terminado Exitosamente!")
         print(f"Archivo Excel Maestro: {ruta_salida_excel}")
-        print(f"Registros hoy en Genesys Cloud: {total_genesys_cloud} | Registros en HomePass: {total_homepass} | Registros Santiago Centro: {total_genesys_santiago_centro}")
+        print(f"Registros hoy en Genesys Cloud: {total_genesys_cloud} | HomePass: {total_homepass} | Base Claro: {total_genesys_base_claro} | CTO: {total_genesys_cto}")
         print("="*40)
 
     except Exception as e_excel:

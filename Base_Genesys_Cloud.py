@@ -44,31 +44,43 @@ ruta_base = _RUTAS['ruta_base']
 ruta_salida = _RUTAS['ruta_salida']
 ruta_bases_cloud = _RUTAS['ruta_bases_cloud']
 
-# Rutas que se construyen a partir de ruta_base
-ruta_cargue_actual = os.path.join(ruta_base, 'Cargue Actual')
-
 
 # =============================================================================
-# FUNCIONES DE FECHAS PARA EL MES PASADO
+# FUNCIONES DE FECHAS DINÁMICAS (MES ACTUAL Y MES PASADO)
 # =============================================================================
 
 hoy = datetime.now()
 mes_pasado_fecha = hoy.replace(day=1) - timedelta(days=6)
+
 meses_espanol = {
     1: 'Enero', 2: 'Febrero', 3: 'Marzo', 4: 'Abril',
     5: 'Mayo', 6: 'Junio', 7: 'Julio', 8: 'Agosto',
     9: 'Septiembre', 10: 'Octubre', 11: 'Noviembre', 12: 'Diciembre'
 }
 
-anio_pasado = mes_pasado_fecha.strftime('%Y')
-num_mes = mes_pasado_fecha.strftime('%m')
-nombre_mes = meses_espanol[mes_pasado_fecha.month]
-carpeta_mes_pasado = f"{num_mes}. {nombre_mes}"
+# --- MES ACTUAL (Histórico) ---
+anio_actual = hoy.strftime('%Y')
+num_mes_actual = hoy.strftime('%m')
+nombre_mes_actual = meses_espanol[hoy.month]
+carpeta_mes_actual = f"{num_mes_actual}. {nombre_mes_actual}"
 
-# La ruta historico se construye con las variables
-ruta_historico_mes_pasado = os.path.join(
-    ruta_base, 'Historico', anio_pasado, carpeta_mes_pasado
-)
+# --- MES PASADO (Histórico) ---
+anio_pasado = mes_pasado_fecha.strftime('%Y')
+num_mes_pasado = mes_pasado_fecha.strftime('%m')
+nombre_mes_pasado = meses_espanol[mes_pasado_fecha.month]
+carpeta_mes_pasado = f"{num_mes_pasado}. {nombre_mes_pasado}"
+
+
+# =============================================================================
+# CONSTRUCCIÓN DE RUTAS DINÁMICAS
+# =============================================================================
+
+# Ruta de Cargue Actual
+ruta_cargue_actual = os.path.join(ruta_base, 'Cargue Actual')
+
+# Rutas de Histórico (mes actual y mes pasado)
+ruta_historico_mes_actual = os.path.join(ruta_base, 'Historico', anio_actual, carpeta_mes_actual)
+ruta_historico_mes_pasado = os.path.join(ruta_base, 'Historico', anio_pasado, carpeta_mes_pasado)
 
 
 # =============================================================================
@@ -93,22 +105,25 @@ def main():
     """Funcion principal que ejecuta todo el proceso de Base Genesys Cloud"""
 
     print("Buscando archivos en todas las rutas...")
-    print(f" -> Actual: {ruta_cargue_actual}")
-    print(f" -> Histórico: {ruta_historico_mes_pasado}")
+    print(f" -> Cargue Actual: {ruta_cargue_actual}")
+    print(f" -> Histórico Mes Actual: {ruta_historico_mes_actual}")
+    print(f" -> Histórico Mes Pasado: {ruta_historico_mes_pasado}")
     print(f" -> Cloud Bases: {ruta_bases_cloud}")
 
+    # Buscar archivos en cada carpeta
     archivos_actual = glob.glob(os.path.join(ruta_cargue_actual, "*.csv"))
-    archivos_historico = glob.glob(
-        os.path.join(ruta_historico_mes_pasado, "*.csv"))
+    archivos_mes_actual = glob.glob(os.path.join(ruta_historico_mes_actual, "*.csv"))
+    archivos_mes_pasado = glob.glob(os.path.join(ruta_historico_mes_pasado, "*.csv"))
     archivos_cloud = glob.glob(os.path.join(ruta_bases_cloud, "*.csv"))
-    archivos_csv = archivos_actual + archivos_historico + archivos_cloud
+
+    # Consolidar todos los archivos
+    archivos_csv = archivos_actual + archivos_mes_actual + archivos_mes_pasado + archivos_cloud
 
     if not archivos_csv:
         print("\nNo se encontraron archivos CSV en ninguna de las rutas.")
         return
 
-    print(
-        f"\nSe encontraron {len(archivos_csv)} archivos en total. Iniciando consolidación...")
+    print(f"\nSe encontraron {len(archivos_csv)} archivos en total. Iniciando consolidación...")
     lista_tablas = []
 
     for archivo in archivos_csv:
@@ -159,7 +174,7 @@ def main():
     if lista_tablas:
         df_final = pd.concat(lista_tablas, ignore_index=True)
 
-        print("Limpiando caracteres especiales (Mojibake)...")
+        print("Limpiando caracteres especiales...")
         diccionario_caracteres = {
             '\xc3\xa1': 'á', '\xc3\xa9': 'é', '\xc3\xad': 'í', '\xc3\xb3': 'ó', '\xc3\xba': 'ú',
             '\xc3\xb1': 'ñ', '\xc3\x91': 'Ñ', '\xc2\xb0': '°', '\xc2\x94': ''
