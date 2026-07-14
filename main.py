@@ -1,7 +1,24 @@
 """
-Aplicacion principal del sistema de migraciones
-Los datos persistentes (horarios, logs) se almacenan en %APPDATA%/RPA_Migracion/
+Aplicación principal del sistema de migraciones con interfaz PyQt6.
+
+Funcionalidades principales:
+1. Interfaz gráfica con pestañas:
+   - Consola de Salida: Logs en tiempo real con colores
+   - Estado de Procesos: Tabla con estado de cada tarea
+   - Horarios Configurados: Gestión de horarios programados
+   - Rutas de Archivos: Visualización y edición de rutas
+   - Editor de Código: Edición de módulos con resaltado de sintaxis
+2. Programación horaria automática (conexión con horarios.py)
+3. Ejecución manual de procesos (Cruce + Engaged)
+4. Redirección de stdout a la consola de la interfaz
+5. Logs persistentes en %APPDATA%/RPA_Migracion/logs/
+6. Editor de código con resaltador de sintaxis Python
+7. Guardado de módulos en AppData (persistente)
+8. Recarga dinámica de módulos modificados
+9. Gestión de rutas con explorador de archivos
+10. Notificaciones de éxito/error
 """
+
 import sys
 import os
 import threading

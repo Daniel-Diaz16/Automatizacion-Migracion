@@ -1,3 +1,17 @@
+"""
+Módulo de consolidación de bases de datos Genesys Cloud.
+
+Funcionalidades principales:
+1. Busca archivos CSV en múltiples carpetas (Cargue Actual, Histórico, Cloud Bases)
+2. Detecta automáticamente separadores (coma o punto y coma)
+3. Limpia caracteres especiales y espacios en columnas
+4. Extrae y formatea fechas desde vCampaignEffectiveDate (formato YYYYMMDD)
+5. Limpia números de teléfono (últimos 9 dígitos)
+6. Consolida todos los archivos en un solo Excel
+
+La configuración de rutas se carga desde %APPDATA%/RPA_Migracion/rutas_config.json
+"""
+
 import pandas as pd
 import glob
 import os

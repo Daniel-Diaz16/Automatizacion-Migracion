@@ -1,3 +1,17 @@
+"""
+Módulo de procesamiento de archivos .rsl de Genesys Engaged.
+
+Funcionalidades principales:
+1. Lee archivos .rsl con delimitador '|' y codificación latin-1
+2. Procesa el formato especial de los archivos .rsl (clave=valor)
+3. Limpia dinámicamente las columnas extrayendo los valores después del '='
+4. Agrega columna de origen con el nombre del archivo
+5. Consolida todos los archivos en un solo Excel
+
+Los archivos .rsl tienen formato:
+columna1=valor1|columna2=valor2|columna3=valor3
+"""
+
 import os
 import glob
 import pandas as pd

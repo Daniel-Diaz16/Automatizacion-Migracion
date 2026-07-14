@@ -1,7 +1,20 @@
 """
-Modulo orquestador de tareas de migracion
-Cada tarea se ejecuta en su propio hilo
+Orquestador de tareas de migración con ejecución en hilos separados.
+
+Funcionalidades principales:
+1. Clase TareaEjecutor para manejar tareas en hilos independientes
+2. Estado de tareas (activo/inactivo) con thread-safety
+3. Ejecución de funciones específicas por módulo
+4. Tareas disponibles:
+   - procesar_acumulado()    → Acomulado_Genesys_Cloud.main()
+   - procesar_base_cloud()   → Base_Genesys_Cloud.main()
+   - procesar_cruces()       → Cruce_Genesys_Cloud.main()
+   - procesar_engaged()      → Genesys_Engaged.procesar_automatizacion()
+   - procesar_cruces_y_engaged() → Cruce + Engaged en paralelo
+5. Monitoreo de estado de tareas
+6. Espera de finalización con timeout
 """
+
 import sys
 import threading
 import traceback

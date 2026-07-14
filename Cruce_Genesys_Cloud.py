@@ -1,3 +1,22 @@
+"""
+Módulo principal de cruce y consolidación de datos Genesys Cloud.
+
+Funcionalidades principales:
+1. Carga y une archivos CSV de la carpeta Genesys Cloud
+2. Limpieza y normalización de nombres de usuarios (con diccionario de reemplazos)
+3. Extracción de tipificación desde Conclusión
+4. Clasificaciones automáticas (Gestión, Tipo de llamada, No aplica, Migración, Contacto)
+5. Cruce con Base_Genesys_Cloud para obtener Bucket (Segment_of_Origin)
+6. Cruce con Dotación (supervisor, ANDES, fecha ingreso, DNI, sede)
+7. Cálculo de antigüedad del agente (Vigente, Prematuro, OJT)
+8. Cruce con Cuartiles y Malla de Turnos
+9. Eliminación de duplicados por KEY (Hora+Usuario+Fono+Tipificacion+Bucket)
+10. Conteo de bases (Genesys Cloud, HomePass, Base Claro, CTO)
+11. Exportación a Excel con pestañas: Base_Consolidada, Conteo de bases, Acumulado
+
+Configuración de rutas desde %APPDATA%/RPA_Migracion/rutas_config.json
+"""
+
 import pandas as pd
 import glob
 import os

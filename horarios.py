@@ -1,7 +1,24 @@
 """
-Sistema de programacion horaria con soporte para hilos y zona horaria Colombia
-Los datos persistentes se almacenan en %APPDATA%/RPA_Migracion/
+Sistema de programación horaria con soporte para hilos y zona horaria Colombia.
+
+Funcionalidades principales:
+1. Almacenamiento persistente de horarios en %APPDATA%/RPA_Migracion/horarios.json
+2. Carga/guarda de configuración de rutas desde %APPDATA%/RPA_Migracion/rutas_config.json
+3. Programador de tareas con schedule (ejecución en hilo separado)
+4. Mapeo de días (lunes a domingo) para programación
+5. Mapeo de tareas (acumulado, base_cloud, cruce, engaged, etc.)
+6. Función especial "acumulado_base" que ejecuta acumulado + base_cloud en secuencia
+7. Logs diarios en %APPDATA%/RPA_Migracion/logs/
+
+Tareas disponibles:
+- cruce_engaged: Ejecuta cruce y engaged en paralelo
+- acumulado_base: Ejecuta acumulado + base_cloud secuencialmente
+- acumulado: Solo acumulado
+- base_cloud: Solo base cloud
+- cruce: Solo cruce
+- engaged: Solo engaged
 """
+
 import schedule
 import threading
 import time

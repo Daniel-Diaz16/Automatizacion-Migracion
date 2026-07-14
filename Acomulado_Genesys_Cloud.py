@@ -1,3 +1,18 @@
+"""
+Módulo de procesamiento de archivos de interacciones Genesys Cloud.
+
+Funcionalidades principales:
+1. Lee archivos CSV de carpetas dinámicas (mes actual y mes pasado)
+2. Limpia y normaliza nombres de usuarios (elimina caracteres especiales, corrige nombres)
+3. Extrae tipificación desde el campo Conclusión (formato "CODIGO;TIPIFICACION")
+4. Cruza con base de dotación para asignar supervisores
+5. Filtra por fecha (últimos 10 días del mes anterior hasta fin de mes actual)
+6. Mapea colas a bases específicas (Genesys Cloud, HomePass, Santiago Centro, Base Infactible)
+7. Exporta archivo Acomulado.csv con las columnas seleccionadas
+
+La configuración de rutas se carga desde %APPDATA%/RPA_Migracion/rutas_config.json
+"""
+
 import pandas as pd
 import glob
 import os

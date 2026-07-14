@@ -1,7 +1,19 @@
 """
-Resaltador de sintaxis para Python en QTextEdit
-Colores suaves y profesionales para mejor legibilidad
+Resaltador de sintaxis para Python en QTextEdit.
+
+Colores profesionales (estilo VS Code):
+- Palabras clave: Azul (#569CD6)
+- Comentarios: Verde (#6A9955)
+- Strings: Naranja (#CE9178)
+- Números: Verde claro (#B5CEA8)
+- Funciones: Amarillo (#DCDCAA)
+- Clases: Turquesa (#4EC9B0)
+- Decoradores: Morado (#C586C0)
+- Errores: Rojo subrayado (#F44747)
+
+Soporta f-strings, strings triples y detección de errores comunes.
 """
+
 from PyQt6.QtCore import QRegularExpression
 from PyQt6.QtGui import QSyntaxHighlighter, QTextCharFormat, QColor, QFont
 

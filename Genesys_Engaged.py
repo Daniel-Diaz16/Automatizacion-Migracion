@@ -1,3 +1,20 @@
+"""
+Módulo de procesamiento de formulario Engaged desde Google Sheets.
+
+Funcionalidades principales:
+1. Descarga el formulario Engaged desde Google Sheets (vía URL de exportación)
+2. Carga fuentes externas: Dotación, Llamadas, Cuartiles, Malla de Turnos
+3. Filtra campañas excluidas (PILOTO CLOUD, HOME PASS, etc.)
+4. Calcula columnas derivadas (Migración Engaged, No Acepta, Contacto)
+5. Cruces con Dotación (supervisor, antigüedad)
+6. Cruce con Llamadas para obtener métricas de llamadas
+7. Cruce con Cuartiles y Malla de Turnos
+8. Conteo de archivos .rsl en Genesys Engaged Bases
+9. Exporta a Excel con pestañas: Formulario Engaged, Campaign Activity, Conteo Engaged
+
+El spreadsheet ID y GID están fijos en el código.
+"""
+
 import os
 import sys
 import logging
