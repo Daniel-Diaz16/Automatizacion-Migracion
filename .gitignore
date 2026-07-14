@@ -1,4 +1,10 @@
-__pycache__
-build
-dist
-horarios
+__pycache__/
+
+*.pyc
+*.pyo
+*.pyd
+.Python
+env/
+venv/
+librerias/
+output

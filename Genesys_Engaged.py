@@ -6,36 +6,113 @@ import io
 import glob
 import pandas as pd
 import requests
+import json
 
-
-
+# Silenciar las advertencias de openpyxl sobre validación de datos
 warnings.filterwarnings('ignore', category=UserWarning, module='openpyxl')
 
 
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - [%(levelname)s] - %(message)s',
-    handlers=[
-        logging.StreamHandler(sys.stdout),
-        logging.FileHandler('automatizacion_engaged.log', encoding='utf-8')
-    ]
-)
+# =============================================================================
+# FUNCION PARA CARGAR RUTAS DESDE JSON
+# =============================================================================
+
+def obtener_ruta_config():
+    """Obtiene la ruta donde se guarda la configuración en AppData/Roaming"""
+    app_data = os.getenv('APPDATA')
+    config_dir = os.path.join(app_data, 'RPA_Migracion')
+    return os.path.join(config_dir, 'rutas_config.json')
+
+
+def cargar_rutas_modulo():
+    """Carga las rutas del módulo Genesys_Engaged desde el JSON"""
+    ruta_config = obtener_ruta_config()
+    if os.path.exists(ruta_config):
+        try:
+            with open(ruta_config, 'r', encoding='utf-8') as f:
+                config = json.load(f)
+            if 'Genesys_Engaged' in config:
+                return config['Genesys_Engaged']
+        except:
+            pass
+    # Si no existe, usar rutas por defecto
+    return {
+        'OUTPUT_FILENAME': r'C:\Users\User\Grupo de Servicios Integrales Chile S.A\Mildred Casas - VTR Operaciones\02.Migracion\10.Corte Migracion\Formulario Engaged.xlsx',
+        'RUTA_DOTACION': r'C:\Users\User\Grupo de Servicios Integrales Chile S.A\Mildred Casas - VTR Operaciones\02.Migracion\10.Corte Migracion\Dotacion VTR Operaciones.xlsx',
+        'RUTA_LLAMadas': r'C:\Users\User\Grupo de Servicios Integrales Chile S.A\Mildred Casas - VTR Operaciones\02.Migracion\10.Corte Migracion\Llamada x agente.csv',
+        'RUTA_CUARTILES': r'C:\Users\User\Grupo de Servicios Integrales Chile S.A\Mildred Casas - VTR Operaciones\02.Migracion\10.Corte Migracion\Cuartiles.xlsx',
+        'RUTA_MALLA_TURNOS': r'C:\Users\User\Grupo de Servicios Integrales Chile S.A\Mildred Casas - VTR Operaciones\02.Migracion\10.Corte Migracion\Malla de turnos diaria.xlsx',
+        'RUTA_CAMPAIGN': r'C:\Users\User\Grupo de Servicios Integrales Chile S.A\Mildred Casas - VTR Operaciones\02.Migracion\10.Corte Migracion\Campaign Activity.csv',
+        'RUTA_BASES_RSL': r'C:\Users\User\Grupo de Servicios Integrales Chile S.A\Mildred Casas - VTR Operaciones\02.Migracion\10.Corte Migracion\Genesys Engaged Bases'
+    }
+
+
+# Cargar rutas desde JSON
+_RUTAS = cargar_rutas_modulo()
+
+# Asignar variables globales
+OUTPUT_FILENAME = _RUTAS['OUTPUT_FILENAME']
+RUTA_DOTACION = _RUTAS['RUTA_DOTACION']
+RUTA_LLAMadas = _RUTAS['RUTA_LLAMadas']
+RUTA_CUARTILES = _RUTAS['RUTA_CUARTILES']
+RUTA_MALLA_TURNOS = _RUTAS['RUTA_MALLA_TURNOS']
+RUTA_CAMPAIGN = _RUTAS['RUTA_CAMPAIGN']
+RUTA_BASES_RSL = _RUTAS['RUTA_BASES_RSL']
+
+
+# =============================================================================
+# CONFIGURACION DEL SISTEMA DE REGISTROS (LOGGING)
+# =============================================================================
+
+_log_configurado = False
+
+
+def _configurar_logging():
+    """Configura logging con ruta en %APPDATA%/RPA_Migracion/logs/"""
+    global _log_configurado
+    if _log_configurado:
+        return
+    try:
+        from horarios import obtener_ruta_log
+        ruta_log = obtener_ruta_log('engaged')
+    except Exception:
+        ruta_log = 'automatizacion_engaged.log'
+
+    logger = logging.getLogger()
+    logger.setLevel(logging.INFO)
+    formatter = logging.Formatter('%(asctime)s - [%(levelname)s] - %(message)s')
+
+    # Handler para consola
+    stream_handler = logging.StreamHandler(sys.stdout)
+    stream_handler.setFormatter(formatter)
+    logger.addHandler(stream_handler)
+
+    # Handler para archivo en APPDATA
+    try:
+        file_handler = logging.FileHandler(ruta_log, encoding='utf-8')
+        file_handler.setFormatter(formatter)
+        logger.addHandler(file_handler)
+    except Exception as e:
+        print(f"No se pudo crear archivo de log: {e}")
+
+    _log_configurado = True
+
+
+# =============================================================================
+# ID DE GOOGLE SHEETS (Fijo, no se modifica desde el JSON)
+# =============================================================================
 
 SPREADSHEET_ID = "1R2BJO1lL1e3CZ5s2_5QT-U8vpeZBRQmRwkJUGu74HEQ"
 GID = "1826436126"
 
-OUTPUT_FILENAME = r"C:\\Users\\User\\Grupo de Servicios Integrales Chile S.A\\Mildred Casas - VTR Operaciones\\02.Migracion\\10.Corte Migracion\\Formulario Engaged.xlsx"
-RUTA_DOTACION = r"C:\\Users\\User\\Grupo de Servicios Integrales Chile S.A\\Mildred Casas - VTR Operaciones\\02.Migracion\\10.Corte Migracion\\Dotacion VTR Operaciones.xlsx"
-RUTA_LLAMadas = r"C:\\Users\\User\\Grupo de Servicios Integrales Chile S.A\\Mildred Casas - VTR Operaciones\\02.Migracion\\10.Corte Migracion\\Llamada x agente.csv"
-RUTA_CUARTILES = r"C:\\Users\\User\\Grupo de Servicios Integrales Chile S.A\\Mildred Casas - VTR Operaciones\\02.Migracion\\10.Corte Migracion\\Cuartiles.xlsx"
-RUTA_MALLA_TURNOS = r"C:\\Users\\User\\Grupo de Servicios Integrales Chile S.A\\Mildred Casas - VTR Operaciones\\02.Migracion\\10.Corte Migracion\\Malla de turnos diaria.xlsx"
-RUTA_CAMPAIGN = r"C:\\Users\\User\\Grupo de Servicios Integrales Chile S.A\\Mildred Casas - VTR Operaciones\\02.Migracion\\10.Corte Migracion\\Campaign Activity.csv"
-RUTA_BASES_RSL = r"C:\\Users\\User\\Grupo de Servicios Integrales Chile S.A\\Mildred Casas - VTR Operaciones\\02.Migracion\\10.Corte Migracion\\Genesys Engaged Bases"
 
+# =============================================================================
+# FUNCIONES DEL PROCESO
+# =============================================================================
 
 def limpiar_dni(dni_series):
     s = pd.to_numeric(dni_series, errors='coerce').astype('Int64').astype(str)
     return s.replace('<NA>', '')
+
 
 def cargar_fuentes_externas():
     df_dotacion = pd.DataFrame()
@@ -77,7 +154,7 @@ def cargar_fuentes_externas():
                         "Maria Paula Gaitan Gaitan": "Maria Paula Gaitan Viajan",
                         "Angela Kargy Quintero Ollares": "Angela Kargy Quintero Ollarves",
                         "Estefany Ali Ali": "Estefany Ali",
-                        "Leonardo Hernandez  Aguilar": "Leonardo Hernandez Aguilar", # Ojo: tenía un doble espacio
+                        "Leonardo Hernandez  Aguilar": "Leonardo Hernandez Aguilar",
                         "Jeison Andres Morales Piratoba": "Andres Jeison Morales Piratoba",
                         "Jeimmy Paola Rojas Zarate": "Jeimmy Paola Rojas Zarate",
                         "Jorge Camilo Casallas Casallas": "Jorge Camilo Casallas",
@@ -86,7 +163,7 @@ def cargar_fuentes_externas():
                         "Edna Rocio Riano Latorre": "Edna Rocio Riaño Latorre",
                         "Daniela Fernanda Randazzo Briceno": "Daniela Fernanda Randazzo Briceno",
                         "Daniel Felipe Ramos Umana": "Daniel Felipe Ramos Umaña"
-}
+                    }
                     df_llamadas['Nombre'] = df_llamadas['Nombre'].replace(reemplazos)
             except Exception as e:
                 logging.error(f"Error cargando Llamadas: {e}")
@@ -112,7 +189,7 @@ def cargar_fuentes_externas():
                 logging.error(f"Error cargando Malla Turnos: {e}")
 
         return df_dotacion, df_llamadas, df_cuartiles, df_malla_turnos
-    except Exception as e:
+    except Exception:
         return pd.DataFrame(), pd.DataFrame(), pd.DataFrame(), pd.DataFrame()
 
 
@@ -160,13 +237,20 @@ def aplicar_transformaciones_y_cruces(df_origen, df_dotacion, df_llamadas, df_cu
     df.columns = df.columns.str.strip()
 
     if 'TIPO CAMPAÑA' in df.columns:
-        # 1. Limpiamos la columna: a texto, sin espacios en los bordes y todo en mayúscula
         df['TIPO CAMPAÑA'] = df['TIPO CAMPAÑA'].astype(str).str.strip().str.upper()
         
-        # 2. Aplicamos el filtro
-        campañas_a_excluir = ["PILOTO CLOUD", "MIGRACION NORMAL CLOUD", "HOME PASS", "APAGADO NODOS", "BASE CLIENTES COLABORADORES", "BASE MANUAL CLIENTE DESISTE", "PILOTO CTO CLOUD"]
+        # CAMPAIGNAS EXCLUIDAS (actualizadas con las del segundo código)
+        campañas_a_excluir = [
+            "PILOTO CLOUD", 
+            "MIGRACION NORMAL CLOUD", 
+            "HOME PASS", 
+            "APAGADO NODOS", 
+            "BASE CLIENTES COLABORADORES", 
+            "BASE MANUAL CLIENTE DESISTE", 
+            "PILOTO CTO CLOUD"
+        ]
         df = df[~df['TIPO CAMPAÑA'].isin(campañas_a_excluir)]
-        logging.info("Filtro aplicado de forma segura: Se excluyeron las campañas")
+        logging.info("Filtro aplicado: Se excluyeron las campañas no deseadas.")
     else:
         logging.warning("No se encontró la columna 'TIPO DE CAMPAÑA' en el formulario original.")
 
@@ -202,14 +286,17 @@ def aplicar_transformaciones_y_cruces(df_origen, df_dotacion, df_llamadas, df_cu
             df['Antiguedad'] = dias.apply(calc_ant)
             df['FECHA INGRESO'] = fecha_dt.dt.strftime('%d/%m/%Y')
     else:
-        for c in ['Genesys Engaged', 'SUPERVISOR', 'NOMBRE COMPLETO', 'FECHA INGRESO', 'DNI','SEDE']: df[c] = "Error"
+        for c in ['Genesys Engaged', 'SUPERVISOR', 'NOMBRE COMPLETO', 'FECHA INGRESO', 'DNI','SEDE']: 
+            df[c] = "Error"
 
     if 'NOMBRE COMPLETO' in df.columns and not df_llamadas.empty:
         df = pd.merge(df, df_llamadas, left_on='NOMBRE COMPLETO', right_on='Nombre', how='left')
-        if 'Nombre' in df.columns: df.drop(columns=['Nombre'], inplace=True)
+        if 'Nombre' in df.columns: 
+            df.drop(columns=['Nombre'], inplace=True)
 
     if 'DNI' in df.columns and not df_cuartiles.empty:
         df = pd.merge(df, df_cuartiles, how='left', on='DNI')
+    
     if df_malla_turnos.empty:
         logging.warning("No se cruzaron los Turnos: El archivo 'Malla de Turnos' está vacío o no se cargó.")
     elif 'DNI' not in df.columns:
@@ -218,7 +305,7 @@ def aplicar_transformaciones_y_cruces(df_origen, df_dotacion, df_llamadas, df_cu
         logging.warning("No se cruzaron los Turnos: La malla cargó, pero no existe la columna llamada exactamente 'Turno'.")
     else:
         df = pd.merge(df, df_malla_turnos, how='left', on='DNI')
-        logging.info("✅ Cruce de Malla de Turnos realizado con éxito.")
+        logging.info("Cruce de Malla de Turnos realizado con éxito.")
 
     columnas_a_eliminar = [
         'FECHA DE LA BASE', 'FECHA', 'Unnamed: 18', 'Genesys Engaged', 
@@ -249,7 +336,6 @@ def obtener_conteo_rsl():
         
     for archivo in archivos:
         try:
-            # Leemos el archivo usando Pandas para contar las filas reales de datos
             df_temp = pd.read_csv(archivo, sep='|', encoding='latin-1', dtype=str, on_bad_lines='skip')
             total_registros += len(df_temp)
             logging.info(f"Conteo: {os.path.basename(archivo)} tiene {len(df_temp)} registros.")
@@ -260,6 +346,8 @@ def obtener_conteo_rsl():
 
 
 def procesar_automatizacion():
+    """Funcion principal que ejecuta todo el proceso de Genesys Engaged"""
+    _configurar_logging()
     export_url = f"https://docs.google.com/spreadsheets/d/{SPREADSHEET_ID}/export?format=xlsx&gid={GID}"
     try:
         response = requests.get(export_url, timeout=30)
@@ -278,15 +366,12 @@ def procesar_automatizacion():
             if not os.path.exists(carpeta_destino):
                 os.makedirs(carpeta_destino)
 
-
             with pd.ExcelWriter(OUTPUT_FILENAME, engine='openpyxl') as writer:
                 df_final.to_excel(writer, sheet_name='Formulario Engaged', index=False)
                 
-
                 if not df_campaign.empty:
                     df_campaign.to_excel(writer, sheet_name='Campaign Activity', index=False)
                     
-
                 df_conteo.to_excel(writer, sheet_name='Conteo Engaged', index=False)
                     
             logging.info(f"¡Reporte guardado exitosamente en: {OUTPUT_FILENAME} con sus hojas correspondientes!")
@@ -296,5 +381,11 @@ def procesar_automatizacion():
     except Exception as e:
         logging.error(f"Error crítico: {str(e)}")
 
-if __name__ == "__main__":
+
+def main():
+    """Punto de entrada principal"""
     procesar_automatizacion()
+
+
+if __name__ == "__main__":
+    main()

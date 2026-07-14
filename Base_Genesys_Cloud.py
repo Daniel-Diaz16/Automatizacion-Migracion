@@ -1,9 +1,54 @@
 import pandas as pd
 import glob
 import os
+import json
+import sys
 from datetime import datetime, timedelta
 
-# 1. Configuración de fechas dinámicas
+
+# =============================================================================
+# FUNCION PARA CARGAR RUTAS DESDE JSON
+# =============================================================================
+
+def obtener_ruta_config():
+    """Obtiene la ruta donde se guarda la configuración en AppData/Roaming"""
+    app_data = os.getenv('APPDATA')
+    config_dir = os.path.join(app_data, 'RPA_Migracion')
+    return os.path.join(config_dir, 'rutas_config.json')
+
+
+def cargar_rutas_modulo():
+    """Carga las rutas del módulo Base_Genesys_Cloud desde el JSON"""
+    ruta_config = obtener_ruta_config()
+    if os.path.exists(ruta_config):
+        try:
+            with open(ruta_config, 'r', encoding='utf-8') as f:
+                config = json.load(f)
+            if 'Base_Genesys_Cloud' in config:
+                return config['Base_Genesys_Cloud']
+        except:
+            pass
+    # Si no existe, usar rutas por defecto
+    return {
+        'ruta_base': r'C:\Users\User\Grupo de Servicios Integrales Chile S.A\Mildred Casas - VTR Operaciones\02.Migracion\09. Bases Genesys\01. Contact_List',
+        'ruta_salida': r'C:\Users\User\Grupo de Servicios Integrales Chile S.A\Mildred Casas - VTR Operaciones\02.Migracion\10.Corte Migracion\Base_Genesys_Cloud.xlsx',
+        'ruta_bases_cloud': r'C:\Users\User\Grupo de Servicios Integrales Chile S.A\Mildred Casas - VTR Operaciones\02.Migracion\10.Corte Migracion\Genesys Cloud Bases'
+    }
+
+
+# Cargar rutas desde JSON
+_RUTAS = cargar_rutas_modulo()
+
+# Asignar variables globales
+ruta_base = _RUTAS['ruta_base']
+ruta_salida = _RUTAS['ruta_salida']
+ruta_bases_cloud = _RUTAS['ruta_bases_cloud']
+
+
+# =============================================================================
+# FUNCIONES DE FECHAS DINÁMICAS (MES ACTUAL Y MES PASADO)
+# =============================================================================
+
 hoy = datetime.now()
 mes_pasado_fecha = hoy.replace(day=1) - timedelta(days=6)
 
@@ -26,14 +71,21 @@ nombre_mes_pasado = meses_espanol[mes_pasado_fecha.month]
 carpeta_mes_pasado = f"{num_mes_pasado}. {nombre_mes_pasado}"
 
 
-# 2. Definición de Rutas
-ruta_base = r'C:\Users\User\Grupo de Servicios Integrales Chile S.A\Mildred Casas - VTR Operaciones\02.Migracion\09. Bases Genesys\01. Contact_List'
-ruta_salida = r'C:\Users\User\Grupo de Servicios Integrales Chile S.A\Mildred Casas - VTR Operaciones\02.Migracion\10.Corte Migracion\Base_Genesys_Cloud.xlsx'
+# =============================================================================
+# CONSTRUCCIÓN DE RUTAS DINÁMICAS
+# =============================================================================
 
-# Nuevas rutas fijadas en la carpeta Histórico
+# Ruta de Cargue Actual
+ruta_cargue_actual = os.path.join(ruta_base, 'Cargue Actual')
+
+# Rutas de Histórico (mes actual y mes pasado)
 ruta_historico_mes_actual = os.path.join(ruta_base, 'Historico', anio_actual, carpeta_mes_actual)
 ruta_historico_mes_pasado = os.path.join(ruta_base, 'Historico', anio_pasado, carpeta_mes_pasado)
-ruta_bases_cloud = r'C:\Users\User\Grupo de Servicios Integrales Chile S.A\Mildred Casas - VTR Operaciones\02.Migracion\10.Corte Migracion\Genesys Cloud Bases'
+
+
+# =============================================================================
+# COLUMNAS REQUERIDAS
+# =============================================================================
 
 columnas_expandidas = [
     'inin-outbound-id',
@@ -44,23 +96,34 @@ columnas_expandidas = [
     'Segment_of_Origin'
 ]
 
-print("Buscando archivos en todas las rutas requeridas...")
-print(f" -> Histórico Mes Actual: {ruta_historico_mes_actual}")
-print(f" -> Histórico Mes Pasado: {ruta_historico_mes_pasado}")
-print(f" -> Cloud Bases: {ruta_bases_cloud}")
 
-# 3. Lectura de archivos CSV por carpetas
-archivos_mes_actual = glob.glob(os.path.join(ruta_historico_mes_actual, "*.csv"))
-archivos_mes_pasado = glob.glob(os.path.join(ruta_historico_mes_pasado, "*.csv"))
-archivos_cloud = glob.glob(os.path.join(ruta_bases_cloud, "*.csv"))
+# =============================================================================
+# PROCESO PRINCIPAL
+# =============================================================================
 
-# Consolidamos las tres listas de archivos
-archivos_csv = archivos_mes_actual + archivos_mes_pasado + archivos_cloud
+def main():
+    """Funcion principal que ejecuta todo el proceso de Base Genesys Cloud"""
 
-if not archivos_csv:
-    print("\n No se encontraron archivos CSV en ninguna de las rutas especificadas.")
-else:
-    print(f"\n Se encontraron {len(archivos_csv)} archivos en total. Iniciando consolidación...")
+    print("Buscando archivos en todas las rutas...")
+    print(f" -> Cargue Actual: {ruta_cargue_actual}")
+    print(f" -> Histórico Mes Actual: {ruta_historico_mes_actual}")
+    print(f" -> Histórico Mes Pasado: {ruta_historico_mes_pasado}")
+    print(f" -> Cloud Bases: {ruta_bases_cloud}")
+
+    # Buscar archivos en cada carpeta
+    archivos_actual = glob.glob(os.path.join(ruta_cargue_actual, "*.csv"))
+    archivos_mes_actual = glob.glob(os.path.join(ruta_historico_mes_actual, "*.csv"))
+    archivos_mes_pasado = glob.glob(os.path.join(ruta_historico_mes_pasado, "*.csv"))
+    archivos_cloud = glob.glob(os.path.join(ruta_bases_cloud, "*.csv"))
+
+    # Consolidar todos los archivos
+    archivos_csv = archivos_actual + archivos_mes_actual + archivos_mes_pasado + archivos_cloud
+
+    if not archivos_csv:
+        print("\nNo se encontraron archivos CSV en ninguna de las rutas.")
+        return
+
+    print(f"\nSe encontraron {len(archivos_csv)} archivos en total. Iniciando consolidación...")
     lista_tablas = []
 
     for archivo in archivos_csv:
@@ -70,8 +133,7 @@ else:
                     archivo, sep=',', encoding='utf-8-sig', dtype=str, on_bad_lines='skip')
                 if len(datos.columns) == 1:
                     raise ValueError("Probable separador punto y coma")
-            except:
-                # Intento con Punto y Coma
+            except Exception:
                 datos = pd.read_csv(
                     archivo, sep=';', encoding='latin1', dtype=str, on_bad_lines='skip')
 
@@ -84,7 +146,8 @@ else:
                 col for col in columnas_expandidas if col in datos.columns]
 
             if not cols_presentes:
-                print(f"  -> Advertencia: Sin columnas requeridas en {os.path.basename(archivo)}")
+                print(
+                    f"  -> Advertencia: Sin columnas requeridas en {os.path.basename(archivo)}")
                 continue
 
             datos = datos[cols_presentes].copy()
@@ -97,7 +160,6 @@ else:
                 datos['Fecha_Base'] = fecha_temporal.dt.strftime('%d/%m/%Y')
                 datos['Origen_Archivo'] = os.path.basename(archivo)
 
-            # Limpieza de fonos
             for col_fono in ['FONO_CONTACTO', 'Fono1']:
                 if col_fono in datos.columns:
                     datos[col_fono] = datos[col_fono].apply(lambda x: str(
@@ -114,8 +176,8 @@ else:
 
         print("Limpiando caracteres especiales...")
         diccionario_caracteres = {
-            'Ã¡': 'á', 'Ã©': 'é', 'Ã\xad': 'í', 'Ã³': 'ó', 'Ãº': 'ú',
-            'Ã±': 'ñ', 'Ã‘': 'Ñ', 'Â°': '°', 'Â': ''
+            '\xc3\xa1': 'á', '\xc3\xa9': 'é', '\xc3\xad': 'í', '\xc3\xb3': 'ó', '\xc3\xba': 'ú',
+            '\xc3\xb1': 'ñ', '\xc3\x91': 'Ñ', '\xc2\xb0': '°', '\xc2\x94': ''
         }
 
         for col in df_final.select_dtypes(include=['object', 'string']).columns:
@@ -131,7 +193,11 @@ else:
         print("Exportando archivo a Excel, esto puede tomar unos segundos...")
         df_final.to_excel(ruta_salida, index=False, engine='openpyxl')
 
-        print(f"\n--- ÉXITO: Archivo guardado con {len(df_final)} filas ---")
+        print(f"\n--- EXITO: Archivo guardado con {len(df_final)} filas ---")
         print(f"Ruta: {ruta_salida}")
     else:
         print("\nError: No se procesó ninguna información.")
+
+
+if __name__ == "__main__":
+    main()
