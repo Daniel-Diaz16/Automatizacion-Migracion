@@ -485,9 +485,9 @@ Procesos disponibles:
         print("Iniciando ejecucion manual...")
         print(f"Hora de inicio: {self.obtener_fecha_hora_completa()}")
 
-        def ejecutar():
+        def ejecutar(): 
             try:
-                resultado = tareas_migracion.procesar_cruces_y_engaged()
+                resultado = tareas_migracion.procesar_cruces()
                 if resultado:
                     print("Proceso manual completado exitosamente")
                 else:
@@ -496,6 +496,7 @@ Procesos disponibles:
                 print(f"Error en proceso manual: {str(e)}")
             finally:
                 self.senales.habilitar_boton_manual.emit(True)
+        
         self._hilo_manual = threading.Thread(target=ejecutar, daemon=True)
         self._hilo_manual.start()
 
@@ -813,6 +814,20 @@ Procesos disponibles:
     def _obtener_ruta_modulo_original(self, nombre_modulo):
         return resource_path(nombre_modulo)
 
+    def _recargar_modulo_desde_ruta(self, nombre_modulo, ruta_archivo):
+        """
+        Recarga un módulo en sys.modules apuntando explícitamente a una ruta de archivo.
+        A diferencia de importlib.reload(), esto permite cargar el módulo desde
+        una ubicación distinta a la original (ej. desde AppData en vez del .exe).
+        """
+        spec = importlib.util.spec_from_file_location(nombre_modulo, ruta_archivo)
+        if spec is None or spec.loader is None:
+            raise ImportError(f"No se pudo crear spec para {nombre_modulo} desde {ruta_archivo}")
+        modulo_nuevo = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(modulo_nuevo)
+        sys.modules[nombre_modulo] = modulo_nuevo
+        return modulo_nuevo
+
     def cargar_codigo_modulo(self):
         """Carga el código del módulo seleccionado en el editor"""
         if not hasattr(self, 'combo_modulos_editor') or not hasattr(self, 'txt_editor_codigo'):
@@ -875,25 +890,48 @@ Procesos disponibles:
         else:
             ruta_actual = self._obtener_ruta_modulo_appdata(modulo)
             mensaje_persistencia = "Este archivo persistirá incluso después de cerrar la aplicación."
+
+        contenido = self.txt_editor_codigo.toPlainText()
+
+        # =============================================================
+        # VALIDAR SINTAXIS ANTES DE GUARDAR (evita persistir archivos rotos)
+        # =============================================================
+        try:
+            compile(contenido, modulo, 'exec')
+        except SyntaxError as e:
+            detalle_linea = f"\nLínea {e.lineno}: {e.text.strip() if e.text else ''}" if e.lineno else ""
+            QMessageBox.critical(
+                self,
+                "Error de sintaxis - No se guardó",
+                f"El código de {modulo} tiene un error de sintaxis y NO se guardó "
+                f"para no romper el archivo existente.\n\n"
+                f"{e.msg}{detalle_linea}\n\n"
+                f"Corrige el error e intenta guardar de nuevo."
+            )
+            print(f"Error de sintaxis en {modulo}, guardado cancelado: {e.msg} (linea {e.lineno})")
+            return
+
         respuesta = QMessageBox.question(self, "Confirmar", f"¿Está seguro de guardar los cambios en {modulo}?\n\nEl archivo se guardará en:\n{ruta_actual}\n\n{mensaje_persistencia}", QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No)
         if respuesta == QMessageBox.StandardButton.Yes:
             try:
-                contenido = self.txt_editor_codigo.toPlainText()
                 directorio = os.path.dirname(ruta_actual)
                 if not os.path.exists(directorio):
                     os.makedirs(directorio, exist_ok=True)
                 with open(ruta_actual, 'w', encoding='utf-8') as f:
                     f.write(contenido)
                 print(f"Código de {modulo} guardado correctamente en:\n  {ruta_actual}")
-                QMessageBox.information(self, "Éxito", f"{modulo} guardado correctamente en:\n\n{ruta_actual}\n\n{mensaje_persistencia}\n\nLa próxima vez que abras el editor, verás esta versión modificada.")
+
                 nombre_modulo = modulo.replace('.py', '')
                 if nombre_modulo in sys.modules:
                     try:
-                        importlib.reload(sys.modules[nombre_modulo])
-                        print(f"Módulo {nombre_modulo} recargado en memoria")
+                        self._recargar_modulo_desde_ruta(nombre_modulo, ruta_actual)
+                        print(f"Módulo {nombre_modulo} recargado en memoria desde:\n  {ruta_actual}")
+                        QMessageBox.information(self, "Éxito", f"{modulo} guardado y recargado correctamente.\n\nRuta:\n{ruta_actual}\n\n{mensaje_persistencia}\n\nLos cambios ya están activos, no es necesario reiniciar.")
                     except Exception as e:
                         print(f"No se pudo recargar {nombre_modulo}: {e}")
-                        print("Reinicia la aplicación para aplicar los cambios")
+                        QMessageBox.warning(self, "Guardado, pero no recargado", f"{modulo} se guardó correctamente, pero no se pudo recargar en memoria:\n{e}\n\nReinicia la aplicación para aplicar los cambios.")
+                else:
+                    QMessageBox.information(self, "Éxito", f"{modulo} guardado correctamente en:\n\n{ruta_actual}\n\n{mensaje_persistencia}\n\nLa próxima vez que abras el editor, verás esta versión modificada.")
             except Exception as e:
                 print(f"Error al guardar {modulo}: {str(e)}")
                 QMessageBox.critical(self, "Error", f"Error al guardar:\n{str(e)}")
